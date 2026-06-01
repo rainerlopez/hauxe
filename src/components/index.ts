@@ -1,2 +1,4 @@
 // Componentes de UI reutilizáveis
-export {};
+export { Button } from './Button';
+export { TextField } from './TextField';
+export { Screen } from './Screen';

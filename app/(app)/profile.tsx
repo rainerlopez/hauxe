@@ -1,10 +1,39 @@
-import { Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Button, Screen } from '../../src/components';
+import { useAuth } from '../../src/features/auth';
+import { useTheme } from '../../src/theme/useTheme';
+import { spacing } from '../../src/theme/spacing';
+import { fontSize, fontWeight } from '../../src/theme/typography';
 
-// Placeholder — tela de perfil
 export default function ProfileScreen() {
+  const { user, signOut } = useAuth();
+  const { c } = useTheme();
+  const [loading, setLoading] = useState(false);
+
+  async function handleSignOut() {
+    setLoading(true);
+    try {
+      await signOut();
+      // A guarda em app/_layout.tsx redireciona para /sign-in.
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Perfil — em breve</Text>
-    </View>
+    <Screen scroll={false}>
+      <View style={styles.body}>
+        <Text style={[styles.label, { color: c.textMuted }]}>Conectado como</Text>
+        <Text style={[styles.email, { color: c.text }]}>{user?.email ?? '—'}</Text>
+      </View>
+      <Button label="Sair" variant="secondary" onPress={handleSignOut} loading={loading} />
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  body: { flex: 1, justifyContent: 'center', gap: spacing.xs },
+  label: { fontSize: fontSize.sm },
+  email: { fontSize: fontSize.xl, fontWeight: fontWeight.medium },
+});

@@ -1,2 +1,2 @@
 // Feature: autenticação (sign-in, sign-up, sessão)
-export {};
+export { AuthProvider, useAuth } from './AuthContext';
