@@ -104,7 +104,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   header: { marginBottom: spacing.xl, alignItems: 'center', gap: spacing.xs },
   title: {
-    fontFamily: fontFamily.serifFallback,
+    fontFamily: fontFamily.serif,
     fontSize: fontSize['3xl'],
     fontWeight: fontWeight.bold,
   },

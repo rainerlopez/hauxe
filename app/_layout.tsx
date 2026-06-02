@@ -1,3 +1,14 @@
+import {
+  SchibstedGrotesk_400Regular,
+  SchibstedGrotesk_500Medium,
+  SchibstedGrotesk_700Bold,
+} from '@expo-google-fonts/schibsted-grotesk';
+import {
+  Fraunces_400Regular,
+  Fraunces_400Regular_Italic,
+  Fraunces_700Bold,
+} from '@expo-google-fonts/fraunces';
+import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -13,10 +24,6 @@ export const unstable_settings = {
   initialRouteName: '(app)',
 };
 
-/**
- * Redireciona entre os grupos (auth) e (app) conforme a sessão.
- * Padrão canônico do Expo Router: observa o segmento ativo + estado de auth.
- */
 function useProtectedRoute() {
   const { session, loading } = useAuth();
   const segments = useSegments();
@@ -39,9 +46,18 @@ function RootNavigator() {
   const { loading } = useAuth();
   useProtectedRoute();
 
+  const [fontsLoaded] = useFonts({
+    SchibstedGrotesk_400Regular,
+    SchibstedGrotesk_500Medium,
+    SchibstedGrotesk_700Bold,
+    Fraunces_400Regular,
+    Fraunces_400Regular_Italic,
+    Fraunces_700Bold,
+  });
+
   useEffect(() => {
-    if (!loading) SplashScreen.hideAsync();
-  }, [loading]);
+    if (!loading && fontsLoaded) SplashScreen.hideAsync();
+  }, [loading, fontsLoaded]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
