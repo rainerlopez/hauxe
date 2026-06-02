@@ -1,5 +1,13 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__search_docs",
+      "Bash(source ~/.nvm/nvm.sh)"
+    ]
   }
 }
