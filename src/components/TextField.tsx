@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '../theme/useTheme';
-import { borderRadius, spacing } from '../theme/spacing';
-import { fontSize, fontWeight } from '../theme/typography';
+import { borderRadius, sizing, spacing } from '../theme/spacing';
+import { fontSize, fontFamily } from '../theme/typography';
 
 interface TextFieldProps extends TextInputProps {
   label: string;
@@ -13,23 +13,36 @@ export function TextField({ label, error, style, ...rest }: TextFieldProps) {
   const { c } = useTheme();
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? c.error : focused ? c.primary : c.border;
+  const borderColor = error ? c.error : focused ? c.focusRing : c.border;
+  const borderWidth = focused ? 2 : 1;
 
   return (
     <View style={styles.wrapper}>
-      <Text style={[styles.label, { color: c.textMuted }]}>{label}</Text>
+      <Text style={[styles.label, { color: c.text2, fontFamily: fontFamily.sansMedium }]}>
+        {label}
+      </Text>
       <TextInput
-        placeholderTextColor={c.textMuted}
+        placeholderTextColor={c.text3}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[
           styles.input,
-          { borderColor, color: c.text, backgroundColor: c.surface },
+          {
+            borderColor,
+            borderWidth,
+            color: c.text,
+            backgroundColor: c.surface,
+            fontFamily: fontFamily.sans,
+          },
           style,
         ]}
         {...rest}
       />
-      {error ? <Text style={[styles.error, { color: c.error }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.error, { color: c.error, fontFamily: fontFamily.sans }]}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -39,17 +52,15 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontSize: fontSize.label,
   },
   input: {
-    height: spacing['3xl'] - spacing.md, // 48px
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    fontSize: fontSize.md,
+    height: sizing.field,
+    borderRadius: borderRadius.field,
+    paddingHorizontal: 16,
+    fontSize: fontSize.body,
   },
   error: {
-    fontSize: fontSize.xs,
+    fontSize: fontSize.micro,
   },
 });

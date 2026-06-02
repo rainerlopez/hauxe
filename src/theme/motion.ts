@@ -1,39 +1,39 @@
 /**
- * Motion tokens Hauxe
- * Baseado no adendo de motion: micro 120-150ms, transição 240-300ms, easing ease-out.
- * Usar com react-native-reanimated (withTiming / Easing).
+ * Motion tokens Hauxe v3 — Adendo de Motion v1
+ * "Movimento que acalma e confirma, nunca que distrai."
+ *
+ * Para Reanimated: withTiming(val, { duration, easing: Easing.bezier(...motionBezier.out) })
+ * Para confirmações (✓): withSpring(val, spring)
  */
 
 export const duration = {
-  /** Micro-interações: press, toggle, ícone — 120–150 ms */
-  micro:       140,
-  /** Transições de tela / modal slide — 240–300 ms */
-  transition:  270,
-  /** Animações de entrada expressivas (splash, hero) */
-  expressive:  400,
+  micro:    140,  // toque, seleção, toggle
+  appear:   230,  // cartões/listas surgindo
+  screen:   280,  // transição entre telas
+  ceremony: 700,  // APENAS a tela "Confirmado" — clímax emocional
 } as const;
 
-/**
- * Easings como strings CSS (para web / Animated API).
- * Para Reanimated, use os equivalentes de Easing.bezier().
- */
+/** Strings CSS (web / Animated API) */
 export const easing = {
-  /** Padrão: sai rápido, desacelera — sensação natural */
-  easeOut:   'cubic-bezier(0.0, 0.0, 0.2, 1)',
-  /** Entrada: começa devagar, acelera */
-  easeIn:    'cubic-bezier(0.4, 0.0, 1, 1)',
-  /** Entrada e saída suaves */
-  easeInOut: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-  /** Linear — para loops / spinners */
-  linear:    'linear',
+  out:    'cubic-bezier(0.22, 1, 0.36, 1)',   // padrão — desaceleração expressiva
+  in:     'cubic-bezier(0.4, 0, 1, 1)',        // saída — acelera ao sair
+  spring: 'cubic-bezier(0.34, 1.4, 0.5, 1)',  // confirmações (✓) — micro-spring
 } as const;
 
-/**
- * Bezier coords para Reanimated Easing.bezier(x1, y1, x2, y2)
- * Usar: withTiming(value, { duration: duration.micro, easing: Easing.bezier(...motionEasing.easeOut) })
- */
-export const motionEasing = {
-  easeOut:   [0.0, 0.0, 0.2, 1] as [number, number, number, number],
-  easeIn:    [0.4, 0.0, 1.0, 1] as [number, number, number, number],
-  easeInOut: [0.4, 0.0, 0.2, 1] as [number, number, number, number],
+/** Coordenadas bezier para Reanimated Easing.bezier(x1, y1, x2, y2) */
+export const motionBezier = {
+  out:    [0.22, 1, 0.36, 1] as [number, number, number, number],
+  in:     [0.4,  0, 1.0,  1] as [number, number, number, number],
+  spring: [0.34, 1.4, 0.5, 1] as [number, number, number, number],
 } as const;
+
+/** Parâmetros de spring para Reanimated withSpring() */
+export const spring = {
+  damping:   14,
+  stiffness: 140,
+} as const;
+
+/** Stagger entre itens de lista (hub de pendências) */
+export const stagger = 64; // ms
+
+export const motion = { duration, easing, motionBezier, spring, stagger };

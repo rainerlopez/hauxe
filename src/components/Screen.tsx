@@ -6,7 +6,6 @@ import { spacing } from '../theme/spacing';
 
 interface ScreenProps {
   children: ReactNode;
-  /** Centraliza o conteúdo verticalmente (útil em telas de formulário/auth). */
   centered?: boolean;
   scroll?: boolean;
 }
@@ -18,7 +17,7 @@ export function Screen({ children, centered = false, scroll = true }: ScreenProp
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -39,9 +38,9 @@ export function Screen({ children, centered = false, scroll = true }: ScreenProp
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  scroll: { flexGrow: 1, padding: spacing.lg },
-  content: { flex: 1, padding: spacing.lg },
+  safe:    { flex: 1 },
+  flex:    { flex: 1 },
+  scroll:  { flexGrow: 1, paddingHorizontal: spacing.xl, paddingVertical: spacing['2xl'] },
+  content: { flex: 1, paddingHorizontal: spacing.xl, paddingVertical: spacing['2xl'] },
   centered: { justifyContent: 'center' },
 });

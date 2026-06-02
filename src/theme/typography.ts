@@ -1,39 +1,39 @@
 /**
- * Tipografia Hauxe
- * Corpo / UI: Schibsted Grotesk — carregada via @expo-google-fonts/schibsted-grotesk
- * Display / títulos: Fraunces — carregada via @expo-google-fonts/fraunces
- * Nomes devem corresponder exatamente às chaves passadas ao useFonts() em app/_layout.tsx.
+ * Tipografia Hauxe v3
+ * UI / corpo: Schibsted Grotesk — pesos 400, 500, 600
+ * Momentos cerimoniais: Fraunces 500 Medium — títulos, saudações
+ * Carregada via @expo-google-fonts em app/_layout.tsx
  */
 
 export const fontFamily = {
   sans:        'SchibstedGrotesk_400Regular',
   sansMedium:  'SchibstedGrotesk_500Medium',
-  sansBold:    'SchibstedGrotesk_700Bold',
-  serif:       'Fraunces_400Regular',
+  sansSemi:    'SchibstedGrotesk_600SemiBold',
+  serif:       'Fraunces_500Medium',
   serifItalic: 'Fraunces_400Regular_Italic',
   serifBold:   'Fraunces_700Bold',
 } as const;
 
 export const fontSize = {
-  xs:    12,
-  sm:    14,
-  md:    16,
-  lg:    18,
-  xl:    20,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 36,
-  '5xl': 48,
+  kicker:  11.5,  // labels de seção em caps
+  micro:   12.5,  // aux, microcopy
+  aux:     13,    // auxiliar
+  label:   13.5,  // label de campo
+  bodySm:  15,    // corpo compacto
+  body:    16,    // corpo / subtítulo
+  title:   26,    // título de tela
+  hero:    30,    // título hero (login recorrente)
 } as const;
 
 export const lineHeight = {
-  tight:   1.2,
-  normal:  1.5,
-  relaxed: 1.75,
+  tight:  1.12,
+  snug:   1.2,
+  normal: 1.45,
 } as const;
 
 export const fontWeight = {
-  regular: '400' as const,
-  medium:  '500' as const,
-  bold:    '700' as const,
+  regular:  '400' as const,
+  medium:   '500' as const,
+  semibold: '600' as const,
+  bold:     '700' as const,
 } as const;

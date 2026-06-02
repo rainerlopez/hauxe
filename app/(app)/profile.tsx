@@ -4,18 +4,17 @@ import { Button, Screen } from '../../src/components';
 import { useAuth } from '../../src/features/auth';
 import { useTheme } from '../../src/theme/useTheme';
 import { spacing } from '../../src/theme/spacing';
-import { fontSize, fontWeight } from '../../src/theme/typography';
+import { fontSize, fontFamily } from '../../src/theme/typography';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const { c } = useTheme();
+  const { c }             = useTheme();
   const [loading, setLoading] = useState(false);
 
   async function handleSignOut() {
     setLoading(true);
     try {
       await signOut();
-      // A guarda em app/_layout.tsx redireciona para /sign-in.
     } finally {
       setLoading(false);
     }
@@ -24,8 +23,12 @@ export default function ProfileScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.body}>
-        <Text style={[styles.label, { color: c.textMuted }]}>Conectado como</Text>
-        <Text style={[styles.email, { color: c.text }]}>{user?.email ?? '—'}</Text>
+        <Text style={[styles.label, { color: c.text2, fontFamily: fontFamily.sans }]}>
+          Conectado como
+        </Text>
+        <Text style={[styles.email, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+          {user?.email ?? '—'}
+        </Text>
       </View>
       <Button label="Sair" variant="secondary" onPress={handleSignOut} loading={loading} />
     </Screen>
@@ -33,7 +36,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, justifyContent: 'center', gap: spacing.xs },
-  label: { fontSize: fontSize.sm },
-  email: { fontSize: fontSize.xl, fontWeight: fontWeight.medium },
+  body:  { flex: 1, justifyContent: 'center', gap: spacing.xs },
+  label: { fontSize: fontSize.aux },
+  email: { fontSize: fontSize.body },
 });

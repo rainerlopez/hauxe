@@ -1,11 +1,12 @@
 import {
   SchibstedGrotesk_400Regular,
   SchibstedGrotesk_500Medium,
-  SchibstedGrotesk_700Bold,
+  SchibstedGrotesk_600SemiBold,
 } from '@expo-google-fonts/schibsted-grotesk';
 import {
   Fraunces_400Regular,
   Fraunces_400Regular_Italic,
+  Fraunces_500Medium,
   Fraunces_700Bold,
 } from '@expo-google-fonts/fraunces';
 import { useFonts } from 'expo-font';
@@ -31,9 +32,7 @@ function useProtectedRoute() {
 
   useEffect(() => {
     if (loading) return;
-
     const inAuthGroup = segments[0] === '(auth)';
-
     if (!session && !inAuthGroup) {
       router.replace('/sign-in');
     } else if (session && inAuthGroup) {
@@ -49,9 +48,10 @@ function RootNavigator() {
   const [fontsLoaded] = useFonts({
     SchibstedGrotesk_400Regular,
     SchibstedGrotesk_500Medium,
-    SchibstedGrotesk_700Bold,
+    SchibstedGrotesk_600SemiBold,
     Fraunces_400Regular,
     Fraunces_400Regular_Italic,
+    Fraunces_500Medium,
     Fraunces_700Bold,
   });
 

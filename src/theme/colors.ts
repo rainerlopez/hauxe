@@ -1,80 +1,88 @@
 /**
- * Paleta Hauxe — Modo A (dourado) + verde da marca
- * TODO: valores finais virão do export do Claude Design / Figma tokens.
- * Por enquanto, placeholders alinhados com a identidade visual inicial.
+ * Paleta Hauxe v3 — Modo A (dourado) · identidade Oca Guata Heté
+ * Fonte: export dos tokens finais do Claude Design (hauxe.tokens.js)
  */
 
 export const palette = {
-  // Dourado (primária)
-  gold50:  '#FDF8EE',
-  gold100: '#F9EDCC',
-  gold200: '#F2D88A',
-  gold300: '#E8C148',
-  gold400: '#D4A017', // primária light
-  gold500: '#B8880F',
-  gold600: '#8F6A0B',
-  gold700: '#664D08',
-  gold800: '#3D2E05',
-  gold900: '#1A1200',
+  // Verde primário — oliva quente (extraído do logo da serpente Guata Heté)
+  forest:      '#29402B',
+  forestDeep:  '#1B301E',
+  onForest:    '#F3F1E7',
+  onForest2:   'rgba(243,241,231,0.70)',
 
-  // Verde da marca (secundária / sucesso)
-  green50:  '#EDFAF2',
-  green100: '#C8F0D8',
-  green200: '#8FDEB2',
-  green300: '#4FC882',
-  green400: '#27AE60', // verde marca
-  green500: '#1E8A4A',
-  green600: '#166636',
-  green700: '#0F4424',
-  green800: '#072212',
-  green900: '#030F08',
+  // Acento — ocre/âmbar das miçangas (Modo A)
+  accent:      '#C68A2E',
+  accentDeep:  '#A56F1F',
+  accentInk:   '#241803',
+  accentSoft:  'rgba(198,138,46,0.08)',
+  accentSoftD: 'rgba(198,138,46,0.12)',
+  focusRing:   'rgba(198,138,46,0.40)',
 
-  // Neutros
-  black:   '#0D0D0D',
-  white:   '#FAFAFA',
-  gray50:  '#F5F5F5',
-  gray100: '#E8E8E8',
-  gray200: '#D1D1D1',
-  gray300: '#ABABAB',
-  gray400: '#858585',
-  gray500: '#5E5E5E',
-  gray600: '#3D3D3D',
-  gray700: '#2B2B2B',
-  gray800: '#1A1A1A',
-  gray900: '#111111',
+  // Semântica
+  success: '#2F7D5B',
+  error:   '#C0392B',
 
-  // Semânticos
-  error:   '#D93025',
-  warning: '#F59E0B',
-  info:    '#3B82F6',
-};
+  // Areia (fundo claro)
+  sand:    '#F6F2E9',
+  sand2:   '#EFEADD',
+  tintL:   '#F1F4EE',
+  white:   '#FFFFFF',
+  ink:     '#1C2620',
+  ink2:    '#5C665E',
+  ink3:    'rgba(28,38,32,0.45)',
+
+  // Floresta noturna (modo escuro)
+  night:         '#10201A',
+  night2:        '#0C1A15',
+  nightSurface:  '#172A22',
+  nightTint:     '#1B3127',
+  nightText:     '#EAF0EA',
+  forestDarkBg:  '#2C5238',
+  forestDarkDeep:'#1B3A26',
+} as const;
 
 export const colors = {
   light: {
-    primary:      palette.gold400,
-    primaryDark:  palette.gold600,
-    secondary:    palette.green400,
-    background:   palette.white,
-    surface:      palette.gray50,
-    text:         palette.gray900,
-    textMuted:    palette.gray500,
-    border:       palette.gray200,
-    error:        palette.error,
-    warning:      palette.warning,
-    success:      palette.green400,
+    bg:          palette.sand,
+    bg2:         palette.sand2,
+    surface:     palette.white,
+    tint:        palette.tintL,
+    forest:      palette.forest,
+    forestDeep:  palette.forestDeep,
+    onForest:    palette.onForest,
+    text:        palette.ink,
+    text2:       palette.ink2,
+    text3:       palette.ink3,
+    accent:      palette.accent,
+    accentDeep:  palette.accentDeep,
+    accentInk:   palette.accentInk,
+    accentSoft:  palette.accentSoft,
+    focusRing:   palette.focusRing,
+    success:     palette.success,
+    error:       palette.error,
+    border:      'rgba(28,38,32,0.13)',
+    border2:     'rgba(28,38,32,0.07)',
   },
   dark: {
-    primary:      palette.gold300,
-    primaryDark:  palette.gold400,
-    secondary:    palette.green300,
-    background:   palette.gray900,
-    surface:      palette.gray800,
-    text:         palette.white,
-    textMuted:    palette.gray400,
-    border:       palette.gray700,
-    error:        '#FF6B6B',
-    warning:      '#FCD34D',
-    success:      palette.green300,
+    bg:          palette.night,
+    bg2:         palette.night2,
+    surface:     palette.nightSurface,
+    tint:        palette.nightTint,
+    forest:      palette.forestDarkBg,
+    forestDeep:  palette.forestDarkDeep,
+    onForest:    palette.onForest,
+    text:        palette.nightText,
+    text2:       'rgba(234,240,234,0.62)',
+    text3:       'rgba(234,240,234,0.40)',
+    accent:      palette.accent,
+    accentDeep:  palette.accentDeep,
+    accentInk:   palette.accentInk,
+    accentSoft:  palette.accentSoftD,
+    focusRing:   'rgba(198,138,46,0.45)',
+    success:     palette.success,
+    error:       '#E57373',
+    border:      'rgba(234,240,234,0.14)',
+    border2:     'rgba(234,240,234,0.08)',
   },
 } as const;
 

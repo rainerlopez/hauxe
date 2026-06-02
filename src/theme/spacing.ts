@@ -1,25 +1,32 @@
 /**
- * Espaçamento Hauxe — base 8px
- * Todos os valores são múltiplos de 8, exceto `xs` (4px) para micro-ajustes.
+ * Espaçamento Hauxe v3 — base 8px
+ * screenX: padding lateral padrão das telas (22px)
+ * blockGap: respiro entre blocos (26px)
  */
 
 export const spacing = {
-  0:    0,
-  xs:   4,   // 0.5 × base
-  sm:   8,   // 1 × base
-  md:   16,  // 2 × base
-  lg:   24,  // 3 × base
-  xl:   32,  // 4 × base
-  '2xl': 48, // 6 × base
-  '3xl': 64, // 8 × base
-  '4xl': 96, // 12 × base
+  0:        0,
+  xs:       4,   // micro-ajustes
+  sm:       8,   // base
+  md:       12,  // interno
+  lg:       16,  // gap padrão
+  xl:       22,  // screenX — padding lateral das telas
+  '2xl':    24,
+  '3xl':    32,
+  blockGap: 26,  // respiro entre blocos de formulário
 } as const;
 
 export const borderRadius = {
-  none: 0,
-  sm:   4,
-  md:   8,
-  lg:   16,
-  xl:   24,
-  full: 9999,
+  none:   0,
+  sm:     6,
+  field:  14,  // campos e inputs
+  card:   16,  // cartões
+  button: 14,  // botões
+  pill:   999,
+} as const;
+
+export const sizing = {
+  field:    52,  // altura de campos
+  button:   52,  // altura do botão primário
+  minTouch: 48,  // alvo mínimo de toque
 } as const;
