@@ -9,20 +9,20 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
-interface SignUpInput {
-  email: string;
-  password: string;
-  fullName: string;
-}
-
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
-  /** `true` enquanto a sessão inicial ainda está sendo restaurada do storage. */
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  /** Retorna `needsConfirmation = true` quando o Supabase exige verificação de e-mail. */
-  signUp: (input: SignUpInput) => Promise<{ needsConfirmation: boolean }>;
+  /**
+   * Envia o OTP por e-mail. Cria o usuário se não existir (shouldCreateUser=true).
+   * fullName é gravado nos metadados e lido pelo trigger handle_new_user().
+   */
+  sendOtp: (email: string, fullName?: string) => Promise<void>;
+  /**
+   * Verifica o código de 6 dígitos recebido por e-mail.
+   * Após sucesso a sessão é preenchida e a guarda de rotas redireciona para (app).
+   */
+  verifyOtp: (email: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -33,13 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Restaura a sessão persistida ao iniciar.
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
-    // Mantém o estado sincronizado com login/logout/refresh.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
@@ -52,20 +50,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       loading,
-      signIn: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      },
-      signUp: async ({ email, password, fullName }) => {
-        const { data, error } = await supabase.auth.signUp({
+
+      sendOtp: async (email, fullName) => {
+        const { error } = await supabase.auth.signInWithOtp({
           email,
-          password,
-          // Lido pelo trigger handle_new_user() para popular profiles.full_name.
-          options: { data: { full_name: fullName } },
+          options: {
+            shouldCreateUser: true,
+            // Lido pelo trigger handle_new_user() para popular profiles.full_name
+            ...(fullName ? { data: { full_name: fullName } } : {}),
+          },
         });
         if (error) throw error;
-        return { needsConfirmation: data.session === null };
       },
+
+      verifyOtp: async (email, token) => {
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: 'email',
+        });
+        if (error) throw error;
+      },
+
       signOut: async () => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;

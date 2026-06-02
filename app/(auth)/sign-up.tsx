@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../src/components';
@@ -8,32 +8,27 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 
 export default function SignUp() {
-  const { signUp } = useAuth();
-  const { c }      = useTheme();
-  const [fullName,  setFullName]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [password,  setPassword]  = useState('');
-  const [error,     setError]     = useState<string | null>(null);
-  const [info,      setInfo]      = useState<string | null>(null);
-  const [loading,   setLoading]   = useState(false);
+  const { sendOtp } = useAuth();
+  const { c }       = useTheme();
+  const router      = useRouter();
 
-  async function handleSignUp() {
+  const [fullName, setFullName] = useState('');
+  const [email,    setEmail]    = useState('');
+  const [error,    setError]    = useState<string | null>(null);
+  const [loading,  setLoading]  = useState(false);
+
+  async function handleSendOtp() {
     setError(null);
-    setInfo(null);
     if (fullName.trim().length < 2) { setError('Informe seu nome completo.'); return; }
-    if (password.length < 6)        { setError('A senha deve ter ao menos 6 caracteres.'); return; }
+    if (!/.+@.+\..+/.test(email))   { setError('Informe um e-mail válido.'); return; }
+
     setLoading(true);
     try {
-      const { needsConfirmation } = await signUp({
-        email: email.trim(),
-        password,
-        fullName: fullName.trim(),
-      });
-      if (needsConfirmation) {
-        setInfo('Conta criada! Verifique seu e-mail para confirmar.');
-      }
+      await sendOtp(email.trim(), fullName.trim());
+      // Passa email e nome para a tela de verificação via query params
+      router.push({ pathname: '/verify', params: { email: email.trim(), fullName: fullName.trim() } });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível criar a conta.');
+      setError(e instanceof Error ? e.message : 'Não foi possível enviar o código.');
     } finally {
       setLoading(false);
     }
@@ -69,7 +64,7 @@ export default function SignUp() {
         </View>
       </View>
 
-      {/* Formulário — mantém lógica email/password */}
+      {/* Formulário — sem senha, OTP por e-mail */}
       <View style={styles.form}>
         <TextField
           label="Nome completo"
@@ -89,34 +84,20 @@ export default function SignUp() {
           inputMode="email"
           placeholder="voce@email.com"
         />
-        <TextField
-          label="Senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="new-password"
-          placeholder="Mínimo 6 caracteres"
-        />
 
         {error ? (
           <Text style={[styles.msg, { color: c.error, fontFamily: fontFamily.sans }]}>
             {error}
           </Text>
         ) : null}
-        {info ? (
-          <Text style={[styles.msg, { color: c.success, fontFamily: fontFamily.sans }]}>
-            {info}
-          </Text>
-        ) : null}
 
-        <Button label="Garantir minha vaga" onPress={handleSignUp} loading={loading} />
+        <Button label="Garantir minha vaga" onPress={handleSendOtp} loading={loading} />
       </View>
 
       {/* Trust note */}
       <View style={[styles.trust, { backgroundColor: c.tint, borderColor: c.border2 }]}>
-        <Text style={[styles.trustText, { color: c.success, fontFamily: fontFamily.sans }]}>
-          🔒{'  '}
-          <Text style={{ color: c.text2 }}>Confirmação por e-mail. Sem pressão, sem urgência.</Text>
+        <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
+          🔒{'  '}Você recebe um código pelo e-mail. Sem senha, sem app para baixar.
         </Text>
       </View>
 
@@ -125,9 +106,12 @@ export default function SignUp() {
         <Text style={[styles.footerText, { color: c.text2, fontFamily: fontFamily.sans }]}>
           Já tem conta?
         </Text>
-        <Link href="/sign-in" style={[styles.link, { color: c.accent, fontFamily: fontFamily.sansMedium }]}>
+        <Text
+          onPress={() => router.push('/sign-in')}
+          style={[styles.link, { color: c.accent, fontFamily: fontFamily.sansMedium }]}
+        >
           Entrar
-        </Link>
+        </Text>
       </View>
     </Screen>
   );
@@ -168,24 +152,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  ceremonyText: {
-    flex: 1,
-  },
-  ceremonyTitle: {
-    fontSize: 15,
-    lineHeight: 18,
-  },
-  ceremonySub: {
-    fontSize: fontSize.aux,
-    marginTop: 2,
-  },
+  ceremonyText: { flex: 1 },
+  ceremonyTitle: { fontSize: 15, lineHeight: 18 },
+  ceremonySub:   { fontSize: fontSize.aux, marginTop: 2 },
   form: {
     gap: spacing.md,
     marginBottom: spacing['2xl'],
   },
-  msg: {
-    fontSize: fontSize.micro,
-  },
+  msg: { fontSize: fontSize.micro },
   trust: {
     borderRadius: borderRadius.field,
     borderWidth: 1,
@@ -193,10 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: spacing['2xl'],
   },
-  trustText: {
-    fontSize: fontSize.aux,
-    lineHeight: 20,
-  },
+  trustText: { fontSize: fontSize.aux, lineHeight: 20 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
