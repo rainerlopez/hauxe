@@ -25,8 +25,8 @@ export default function SignUp() {
     setLoading(true);
     try {
       await sendOtp(email.trim(), fullName.trim());
-      // Passa email e nome para a tela de verificação via query params
-      router.push({ pathname: '/verify', params: { email: email.trim(), fullName: fullName.trim() } });
+      // Caminho principal: magic link. A tela check-email tem o fallback de código.
+      router.push({ pathname: '/check-email', params: { email: email.trim(), fullName: fullName.trim() } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível enviar o código.');
     } finally {

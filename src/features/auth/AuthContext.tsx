@@ -8,21 +8,27 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { resolveRedirectUrl } from './redirect';
 
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
   /**
-   * Envia o OTP por e-mail. Cria o usuário se não existir (shouldCreateUser=true).
+   * Envia o e-mail de autenticação. O e-mail traz um MAGIC LINK (clica e entra)
+   * e — se o template incluir {{ .Token }} — também um código de 6 dígitos (fallback).
+   * Cria o usuário se não existir (shouldCreateUser=true).
    * fullName é gravado nos metadados e lido pelo trigger handle_new_user().
    */
   sendOtp: (email: string, fullName?: string) => Promise<void>;
   /**
-   * Verifica o código de 6 dígitos recebido por e-mail.
-   * Após sucesso a sessão é preenchida e a guarda de rotas redireciona para (app).
+   * Fallback: verifica o código de 6 dígitos digitado manualmente.
    */
   verifyOtp: (email: string, token: string) => Promise<void>;
+  /**
+   * Troca o `code` do magic link (PKCE) por uma sessão. Usado na rota /callback.
+   */
+  completeMagicLink: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -56,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           options: {
             shouldCreateUser: true,
+            // Para onde o magic link redireciona após confirmar (web/nativo).
+            emailRedirectTo: resolveRedirectUrl(),
             // Lido pelo trigger handle_new_user() para popular profiles.full_name
             ...(fullName ? { data: { full_name: fullName } } : {}),
           },
@@ -69,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token,
           type: 'email',
         });
+        if (error) throw error;
+      },
+
+      completeMagicLink: async (code) => {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) throw error;
       },
 

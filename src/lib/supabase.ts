@@ -23,7 +23,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage,
     autoRefreshToken: true,
     persistSession: true,
+    // Magic link usa PKCE: o link volta com ?code= e trocamos manualmente
+    // pela sessão na rota /callback (exchangeCodeForSession). Mantemos
+    // detectSessionInUrl=false para controlar a troca explicitamente em
+    // web e nativo de forma idêntica.
     detectSessionInUrl: false,
+    flowType: 'pkce',
   },
 });
 

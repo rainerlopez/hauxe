@@ -23,7 +23,8 @@ export default function SignIn() {
     setLoading(true);
     try {
       await sendOtp(email.trim());
-      router.push({ pathname: '/verify', params: { email: email.trim() } });
+      // Caminho principal: magic link. A tela check-email tem o fallback de código.
+      router.push({ pathname: '/check-email', params: { email: email.trim() } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível enviar o código.');
     } finally {
