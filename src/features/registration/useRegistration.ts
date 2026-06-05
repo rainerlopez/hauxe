@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth';
 
@@ -37,17 +38,20 @@ export function useRegistration(): State {
   const { user } = useAuth();
   const [state, setState] = useState<State>({ phase: 'loading' });
 
-  useEffect(() => {
-    if (!user) {
-      setState({ phase: 'none' });
-      return;
-    }
+  // Revalida sempre que a tela ganha foco — ao voltar de /anamnese ou
+  // /contribuicao o progresso (ficha_ok / pagamento_ok) pode ter mudado.
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) {
+        setState({ phase: 'none' });
+        return;
+      }
 
-    let cancelled = false;
+      let cancelled = false;
 
-    async function fetch() {
-      setState({ phase: 'loading' });
-      try {
+      async function fetch() {
+        setState({ phase: 'loading' });
+        try {
         // Busca inscrições ativas com join na cerimônia
         const { data: regs, error: regErr } = await supabase
           .from('registrations')
@@ -103,9 +107,10 @@ export function useRegistration(): State {
       }
     }
 
-    fetch();
-    return () => { cancelled = true; };
-  }, [user]);
+      fetch();
+      return () => { cancelled = true; };
+    }, [user]),
+  );
 
   return state;
 }

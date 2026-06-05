@@ -8,6 +8,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.106.2",
     "expo": "~56.0.8",
+    "expo-clipboard": "~56.0.3",
     "expo-constants": "~56.0.16",
     "expo-font": "~56.0.5",
     "expo-linking": "~56.0.13",
@@ -28,6 +29,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "~56.0.4",
     "playwright": "^1.60.0",
     "typescript": "~6.0.3"
   },
@@ -35,7 +38,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }

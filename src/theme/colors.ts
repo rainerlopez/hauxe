@@ -87,4 +87,6 @@ export const colors = {
 } as const;
 
 export type ColorScheme = keyof typeof colors;
-export type Colors = typeof colors.light;
+// Valores como `string` (não literais) para que light e dark compartilhem o
+// mesmo formato — `colors[scheme]` fica atribuível a `Colors`.
+export type Colors = { [K in keyof typeof colors.light]: string };

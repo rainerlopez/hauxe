@@ -409,10 +409,10 @@ create policy "audit - org staff read" on audit_log
   for select using (org_id is not null and is_org_member(org_id));
 
 -- =====================================================================
--- STORAGE (lembrete, rodar no painel ou via API):
---   - bucket 'ceremony-images' público para leitura (flyers).
---   - bucket 'anamnese-files' privado (se houver anexos), com policy
---     espelhando a RLS de anamneses.
+-- STORAGE: buckets e policies aplicados em hauxe_schema_patch_v03_storage.sql
+--   - bucket 'ceremony-images' público para leitura (flyers); escrita staff.
+--   - bucket 'anamnese-files' privado, policy espelhando a RLS de anamneses.
 -- WEBHOOK PIX: a Edge Function usa a SERVICE ROLE KEY (ignora RLS) para
 --   atualizar payments.status e registrations.status -> 'confirmada'.
+--   (esqueletos em supabase/functions/, ver README)
 -- =====================================================================
