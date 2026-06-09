@@ -42,5 +42,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
-  "private": true
+  "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": ["msgpackr-extract"]
+  }
 }
