@@ -37,7 +37,7 @@ export default function ProfileScreen() {
         {/* Acesso ao console — só aparece para staff (RLS bloqueia o resto) */}
         {access.status === 'staff' && (
           <Pressable
-            onPress={() => router.push('/(admin)' as never)}
+            onPress={() => router.push('/admin' as never)}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.staffLink,
