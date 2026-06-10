@@ -145,3 +145,43 @@ DROP TRIGGER IF EXISTS trg_ceremony_capacity ON registrations;
 CREATE TRIGGER trg_ceremony_capacity
   BEFORE INSERT OR UPDATE ON registrations
   FOR EACH ROW EXECUTE FUNCTION public.check_ceremony_capacity();
+
+-- ---------------------------------------------------------------------
+-- 4. Fechar gap (f): conductor e ceremony devem ser da mesma org
+-- ---------------------------------------------------------------------
+-- SECURITY INVOKER deliberado — não DEFINER:
+--   • INSERT passa pela policy "org_admin insert" só se o ator for org_admin
+--     da org da cerimônia → ceremonies.org_id sempre visível no trigger.
+--   • Condutor de outra org está oculto pela policy "conductors - read"
+--     (filtra por is_org_member) → SELECT retorna NULL → NULL IS DISTINCT
+--     FROM <ceremony_org> = TRUE → exception. Sem escalada de privilégio.
+--   • Service_role/postgres (bypassa RLS): vê ambas as linhas → comparação
+--     direta; funciona igualmente.
+DROP TRIGGER   IF EXISTS trg_ceremony_conductor_same_org ON ceremony_conductors;
+DROP FUNCTION  IF EXISTS public.enforce_ceremony_conductor_same_org();
+
+CREATE OR REPLACE FUNCTION public.enforce_ceremony_conductor_same_org()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SET search_path = ''  -- previne search_path injection mesmo com INVOKER
+  -- SECURITY INVOKER (padrão) — ver comentário acima
+AS $$
+DECLARE
+  v_conductor_org uuid;
+  v_ceremony_org  uuid;
+BEGIN
+  SELECT org_id INTO v_conductor_org FROM public.conductors WHERE id = NEW.conductor_id;
+  SELECT org_id INTO v_ceremony_org  FROM public.ceremonies  WHERE id = NEW.ceremony_id;
+
+  IF v_conductor_org IS DISTINCT FROM v_ceremony_org THEN
+    RAISE EXCEPTION 'conductor_org_mismatch'
+      USING HINT = 'O condutor não pertence à mesma organização da cerimônia.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_ceremony_conductor_same_org
+  BEFORE INSERT OR UPDATE ON ceremony_conductors
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_ceremony_conductor_same_org();
