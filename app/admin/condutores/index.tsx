@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../../src/components';
 import { useStaffAccess } from '../../../src/features/admin';
 import { useConductors, type Conductor } from '../../../src/features/admin/useConductors';
@@ -25,8 +25,6 @@ function initials(name: string): string {
 function ConductorAvatar({ name, avatarUrl, size = 48 }: { name: string; avatarUrl: string | null; size?: number }) {
   const { c } = useTheme();
   if (avatarUrl) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Image } = require('react-native');
     return (
       <Image
         source={{ uri: avatarUrl }}

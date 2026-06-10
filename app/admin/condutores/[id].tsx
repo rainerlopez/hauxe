@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
 import { useStaffAccess } from '../../../src/features/admin';
+import { confirmAction } from '../../../src/lib/confirm';
 import { supabase } from '../../../src/lib/supabase';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
@@ -90,36 +91,35 @@ export default function ConductorFormScreen() {
     router.back();
   }
 
-  function handleToggleActive() {
+  async function handleToggleActive() {
     const toDeactivate = active;
-    Alert.alert(
-      toDeactivate ? 'Desativar condutor?' : 'Reativar condutor?',
-      toDeactivate
+
+    const confirmed = await confirmAction({
+      title: toDeactivate ? 'Desativar condutor?' : 'Reativar condutor?',
+      message: toDeactivate
         ? 'O condutor some das opções de novas cerimônias, mas o histórico fica.'
         : 'O condutor voltará a aparecer nas opções de novas cerimônias.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: toDeactivate ? 'Desativar' : 'Reativar',
-          style: toDeactivate ? 'destructive' : 'default',
-          onPress: async () => {
-            if (access.status !== 'staff') return;
-            setPageState('saving');
-            const { error } = await supabase
-              .from('conductors')
-              .update({ active: !toDeactivate })
-              .eq('id', id as string);
-            if (!mounted.current) return;
-            if (error) {
-              setSaveError(error.message);
-              setPageState('ready');
-              return;
-            }
-            router.back();
-          },
-        },
-      ],
-    );
+      confirmLabel: toDeactivate ? 'Desativar' : 'Reativar',
+      destructive: toDeactivate,
+    });
+    if (!confirmed) return;
+
+    if (access.status !== 'staff') return;
+    setPageState('saving');
+    setSaveError(null);
+
+    const { error } = await supabase
+      .from('conductors')
+      .update({ active: !toDeactivate })
+      .eq('id', id as string);
+
+    if (!mounted.current) return;
+    if (error) {
+      setSaveError(error.message);
+      setPageState('ready');
+      return;
+    }
+    router.back();
   }
 
   if (pageState === 'loading') {
