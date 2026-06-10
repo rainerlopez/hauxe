@@ -6,7 +6,7 @@ import { useAuth } from '../../src/features/auth';
 import { useStaffAccess, type StaffRole } from '../../src/features/admin';
 import { supabase } from '../../src/lib/supabase';
 import { useTheme } from '../../src/theme/useTheme';
-import { borderRadius, spacing } from '../../src/theme/spacing';
+import { borderRadius, sizing, spacing } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 
 const ROLE_LABEL: Record<StaffRole, string> = {
@@ -68,6 +68,26 @@ export default function AdminHomeScreen() {
         </Text>
       </View>
 
+      {/* Navegação do console */}
+      <Pressable
+        onPress={() => router.push('/admin/condutores' as never)}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.navCard,
+          { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.75 : 1 },
+        ]}
+      >
+        <View style={styles.navCardText}>
+          <Text style={[styles.navCardTitle, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+            Condutores
+          </Text>
+          <Text style={[styles.navCardSub, { color: c.text2, fontFamily: fontFamily.sans }]}>
+            Gerencie os condutores do seu espaço
+          </Text>
+        </View>
+        <Text style={[styles.navCardArrow, { color: c.text2, fontFamily: fontFamily.sans }]}>→</Text>
+      </Pressable>
+
       {/* Cartão de boas-vindas / próximas fases */}
       <View style={[styles.card, { backgroundColor: c.forest, borderColor: c.forestDeep }]}>
         <Text style={[styles.cardTitle, { color: c.onForest, fontFamily: fontFamily.serif }]}>
@@ -121,11 +141,25 @@ const styles = StyleSheet.create({
     fontSize: fontSize.aux,
     letterSpacing: 0.3,
   },
+  navCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.card,
+    borderWidth: 1,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    minHeight: sizing.minTouch,
+  },
+  navCardText:  { flex: 1, gap: 2 },
+  navCardTitle: { fontSize: fontSize.bodySm },
+  navCardSub:   { fontSize: fontSize.aux },
+  navCardArrow: { fontSize: fontSize.body },
   card: {
     borderRadius: borderRadius.card,
     borderWidth: 1,
     padding: spacing['2xl'],
     marginBottom: spacing['2xl'],
+    marginTop: spacing.md,
   },
   cardTitle: {
     fontSize: fontSize.body,
