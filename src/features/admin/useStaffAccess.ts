@@ -31,11 +31,20 @@ export type StaffAccess =
  * Este hook serve só para a UX (mostrar/ocultar o console e redirecionar).
  */
 export function useStaffAccess(): StaffAccess {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<StaffAccess>({ status: 'loading' });
 
   useFocusEffect(
     useCallback(() => {
+      // Enquanto a sessão ainda está reidratando (hard reload / deep link direto
+      // numa rota de /admin), NÃO decida ainda. Se retornássemos 'denied' aqui,
+      // o guard do _layout redirecionaria para '/' antes de a sessão chegar —
+      // era uma corrida que fazia o console "às vezes não carregar".
+      if (authLoading) {
+        setState({ status: 'loading' });
+        return;
+      }
+
       if (!user) {
         setState({ status: 'denied' });
         return;
@@ -74,7 +83,7 @@ export function useStaffAccess(): StaffAccess {
       return () => {
         cancelled = true;
       };
-    }, [user]),
+    }, [user, authLoading]),
   );
 
   return state;
