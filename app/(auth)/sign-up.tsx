@@ -2,33 +2,44 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../src/components';
-import { useAuth } from '../../src/features/auth';
+import { formatCpf, isValidCpf, useAuth } from '../../src/features/auth';
 import { useTheme } from '../../src/theme/useTheme';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 
 export default function SignUp() {
-  const { sendOtp } = useAuth();
-  const { c }       = useTheme();
-  const router      = useRouter();
+  const { signUp } = useAuth();
+  const { c }      = useTheme();
+  const router     = useRouter();
 
   const [fullName, setFullName] = useState('');
   const [email,    setEmail]    = useState('');
+  const [cpf,      setCpf]      = useState('');
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
 
-  async function handleSendOtp() {
+  async function handleSignUp() {
     setError(null);
     if (fullName.trim().length < 2) { setError('Informe seu nome completo.'); return; }
     if (!/.+@.+\..+/.test(email))   { setError('Informe um e-mail válido.'); return; }
+    if (!isValidCpf(cpf))           { setError('Informe um CPF válido.'); return; }
 
     setLoading(true);
     try {
-      await sendOtp(email.trim(), fullName.trim());
-      // Caminho principal: magic link. A tela check-email tem o fallback de código.
-      router.push({ pathname: '/check-email', params: { email: email.trim(), fullName: fullName.trim() } });
+      const { needsEmailConfirmation } = await signUp(email.trim(), cpf, fullName.trim());
+      if (needsEmailConfirmation) {
+        // Falta confirmar o e-mail: a tela check-email orienta (link + código).
+        router.push({ pathname: '/check-email', params: { email: email.trim() } });
+      }
+      // Com confirmação desativada a sessão já existe — a guarda em _layout
+      // redireciona para (app).
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível enviar o código.');
+      const raw = e instanceof Error ? e.message : '';
+      setError(
+        raw.includes('already registered')
+          ? 'Este e-mail já tem conta. Use "Entrar" com seu e-mail e CPF.'
+          : 'Não foi possível criar sua conta. Tente novamente.',
+      );
     } finally {
       setLoading(false);
     }
@@ -64,7 +75,7 @@ export default function SignUp() {
         </View>
       </View>
 
-      {/* Formulário — sem senha, OTP por e-mail */}
+      {/* Formulário — e-mail (login) + CPF (senha) */}
       <View style={styles.form}>
         <TextField
           label="Nome completo"
@@ -84,6 +95,17 @@ export default function SignUp() {
           inputMode="email"
           placeholder="voce@email.com"
         />
+        <TextField
+          label="CPF"
+          value={cpf}
+          onChangeText={(v) => setCpf(formatCpf(v))}
+          autoCapitalize="none"
+          autoComplete="off"
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={14}
+          placeholder="000.000.000-00"
+        />
 
         {error ? (
           <Text style={[styles.msg, { color: c.error, fontFamily: fontFamily.sans }]}>
@@ -91,13 +113,13 @@ export default function SignUp() {
           </Text>
         ) : null}
 
-        <Button label="Garantir minha vaga" onPress={handleSendOtp} loading={loading} />
+        <Button label="Garantir minha vaga" onPress={handleSignUp} loading={loading} />
       </View>
 
       {/* Trust note */}
       <View style={[styles.trust, { backgroundColor: c.tint, borderColor: c.border2 }]}>
         <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
-          🔒{'  '}Você recebe um código pelo e-mail. Sem senha, sem app para baixar.
+          🔒{'  '}Seu e-mail é seu login e seu CPF é sua senha. Sem app para baixar.
         </Text>
       </View>
 

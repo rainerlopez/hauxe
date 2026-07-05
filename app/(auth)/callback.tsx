@@ -8,12 +8,13 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 
 /**
- * Recebe o retorno do magic link (PKCE). Em web vem como ?code=... na origin;
- * em nativo como deep link hauxe://callback?code=... — em ambos os casos o
- * Expo Router entrega os params aqui. Troca o code pela sessão e redireciona.
+ * Recebe o retorno do link de confirmação de cadastro (PKCE). Em web vem como
+ * ?code=... na origin; em nativo como deep link hauxe://callback?code=... —
+ * em ambos os casos o Expo Router entrega os params aqui. Troca o code pela
+ * sessão e redireciona. Logins seguintes são diretos com e-mail + CPF.
  */
 export default function Callback() {
-  const { completeMagicLink } = useAuth();
+  const { completeEmailLink } = useAuth();
   const { c }                 = useTheme();
   const router                = useRouter();
   const params = useLocalSearchParams<{
@@ -42,7 +43,7 @@ export default function Callback() {
       return;
     }
 
-    completeMagicLink(code)
+    completeEmailLink(code)
       .then(() => {
         // Sessão estabelecida — a guarda em _layout leva ao (app);
         // garantimos o destino aqui também.
@@ -54,7 +55,7 @@ export default function Callback() {
             'ou foi aberto em um aparelho diferente de onde você pediu.',
         );
       });
-  }, [params, completeMagicLink, router]);
+  }, [params, completeEmailLink, router]);
 
   if (!error) {
     return (
