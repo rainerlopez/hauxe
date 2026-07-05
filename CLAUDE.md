@@ -32,7 +32,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 ## Estado do app (2026-06-09)
 - Build web validado (expo export -p web) com 0 erros; tsc --noEmit limpo
 - Fluxos implementados:
-  - Auth completo: (auth)/sign-in, sign-up, verify (código 6 díg.), callback (magic link PKCE), check-email + AuthContext/useAuth
+  - Auth completo: e-mail = login, CPF = senha (signInWithPassword/signUp; CPF normalizado p/ 11 dígitos, validação de dígitos verificadores em src/features/auth/cpf.ts). (auth)/sign-in, sign-up, check-email (confirmação de cadastro), verify (código 6 díg., type signup), callback (link de confirmação PKCE) + AuthContext/useAuth. Ver ENTREGA-user-auth.md
   - Hub (app)/index.tsx "Minha Inscrição": cerimônia ativa, vaga garantida, cartões de tarefa, progresso; revalida no foco (useFocusEffect)
   - (app)/anamnese.tsx: ficha de saúde LGPD com consentimento → upsert; trigger confirma a inscrição
   - (app)/contribuicao.tsx: escolha de tier, QR Code PIX + copia-e-cola (expo-clipboard), polling de confirmação
