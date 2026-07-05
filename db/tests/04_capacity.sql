@@ -86,5 +86,19 @@ EXCEPTION WHEN OTHERS THEN
   INSERT INTO _r VALUES('capacity','d4) UPDATE da própria reg (cheia) não auto-bloqueia','permitido','erro: '||SQLERRM,'FAIL');
 END $$;
 
+-- d5) REGRESSÃO C1/F2 (patch v11): trocar ceremony_id de uma inscrição
+-- ocupante para uma cerimônia CHEIA deve ser BARRADO. P4 tem reserva na
+-- cerimônia ilimitada; movê-la para 'ce200000' (cap=2, cheia com P2+P3)
+-- mantendo status ocupante contornava a capacidade antes da v11.
+-- Esperado pós-v11: 'ceremony_full'. Sem a v11 o UPDATE passa → FAIL.
+DO $$
+BEGIN
+  UPDATE registrations SET ceremony_id='ce200000-0000-0000-0000-000000000002'
+   WHERE ceremony_id='ce000000-0000-0000-0000-00000000000e' AND profile_id='d0000000-0000-0000-0000-000000000004';
+  INSERT INTO _r VALUES('capacity','d5) troca de ceremony_id p/ cerimônia cheia é barrada','ceremony_full','sem erro (bypass!)','FAIL');
+EXCEPTION WHEN OTHERS THEN
+  INSERT INTO _r VALUES('capacity','d5) troca de ceremony_id p/ cerimônia cheia é barrada','ceremony_full',SQLERRM, CASE WHEN SQLERRM='ceremony_full' THEN 'PASS' ELSE 'FAIL' END);
+END $$;
+
 SELECT area, caso, esperado, obtido, resultado FROM _r ORDER BY caso;
 ROLLBACK;
