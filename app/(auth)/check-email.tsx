@@ -8,18 +8,17 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 
 /**
- * Tela pós-envio do magic link. Caminho principal: a pessoa clica no link do
- * e-mail e volta logada (rota /callback). Fallback: "Prefere digitar um código?"
- * leva à tela /verify (código de 6 dígitos).
+ * Tela pós-cadastro, quando o e-mail ainda precisa ser confirmado.
+ * Caminho principal: a pessoa clica no link de confirmação do e-mail e volta
+ * logada (rota /callback). Fallback: "Prefere digitar um código?" leva à tela
+ * /verify (código de 6 dígitos). Depois de confirmado, o login é direto com
+ * e-mail + CPF.
  */
 export default function CheckEmail() {
-  const { sendOtp } = useAuth();
-  const { c }       = useTheme();
-  const router      = useRouter();
-  const { email = '', fullName = '' } = useLocalSearchParams<{
-    email: string;
-    fullName?: string;
-  }>();
+  const { resendConfirmation } = useAuth();
+  const { c }                  = useTheme();
+  const router                 = useRouter();
+  const { email = '' } = useLocalSearchParams<{ email: string }>();
 
   const [resending, setResending] = useState(false);
   const [resent,    setResent]    = useState(false);
@@ -30,7 +29,7 @@ export default function CheckEmail() {
     setResent(false);
     setResending(true);
     try {
-      await sendOtp(email, fullName || undefined);
+      await resendConfirmation(email);
       setResent(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível reenviar.');
@@ -43,23 +42,23 @@ export default function CheckEmail() {
     <Screen>
       {/* Kicker */}
       <Text style={[styles.kicker, { color: c.accent, fontFamily: fontFamily.sansSemi }]}>
-        VERIFICAÇÃO
+        CONFIRMAÇÃO
       </Text>
 
       {/* Título em Fraunces */}
       <Text style={[styles.title, { color: c.text, fontFamily: fontFamily.serif }]}>
-        Verifique seu e-mail.
+        Confirme seu e-mail.
       </Text>
       <Text style={[styles.subtitle, { color: c.text2, fontFamily: fontFamily.sans }]}>
-        Enviamos um link para{'\n'}
+        Enviamos um link de confirmação para{'\n'}
         <Text style={{ color: c.text, fontFamily: fontFamily.sansMedium }}>{email}</Text>
-        {'\n'}Toque nele para entrar.
+        {'\n'}Toque nele para ativar sua conta.
       </Text>
 
       {/* Trust note */}
       <View style={[styles.trust, { backgroundColor: c.tint, borderColor: c.border2 }]}>
         <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
-          🔒{'  '}O link expira em 60 minutos. Não feche este app.
+          🔒{'  '}O link expira em 60 minutos. Depois, entre com e-mail e CPF.
         </Text>
       </View>
 
@@ -86,9 +85,7 @@ export default function CheckEmail() {
 
       {/* Fallback: digitar código */}
       <Text
-        onPress={() =>
-          router.push({ pathname: '/verify', params: { email, fullName } })
-        }
+        onPress={() => router.push({ pathname: '/verify', params: { email } })}
         style={[styles.fallback, { color: c.accent, fontFamily: fontFamily.sansMedium }]}
       >
         Prefere digitar um código?

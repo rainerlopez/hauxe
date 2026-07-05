@@ -9,26 +9,44 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { resolveRedirectUrl } from './redirect';
+import { sanitizeCpf } from './cpf';
 
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
   /**
-   * Envia o e-mail de autenticação. O e-mail traz um MAGIC LINK (clica e entra)
-   * e — se o template incluir {{ .Token }} — também um código de 6 dígitos (fallback).
-   * Cria o usuário se não existir (shouldCreateUser=true).
-   * fullName é gravado nos metadados e lido pelo trigger handle_new_user().
+   * Login com e-mail (usuário) + CPF (senha). O CPF é normalizado para os
+   * 11 dígitos antes de ir ao Supabase, então pontuação não afeta o login.
    */
-  sendOtp: (email: string, fullName?: string) => Promise<void>;
+  signIn: (email: string, cpf: string) => Promise<void>;
   /**
-   * Fallback: verifica o código de 6 dígitos digitado manualmente.
+   * Cria a conta com e-mail + CPF (senha). fullName é gravado nos metadados
+   * e lido pelo trigger handle_new_user() para popular profiles.full_name.
+   * Retorna se ainda falta confirmar o e-mail (depende da config "Confirm
+   * email" do projeto Supabase): sessão nula = confirmação pendente.
    */
-  verifyOtp: (email: string, token: string) => Promise<void>;
+  signUp: (
+    email: string,
+    cpf: string,
+    fullName: string,
+  ) => Promise<{ needsEmailConfirmation: boolean }>;
   /**
-   * Troca o `code` do magic link (PKCE) por uma sessão. Usado na rota /callback.
+   * Reenvia o e-mail de confirmação de cadastro. O e-mail traz um LINK de
+   * confirmação e — se o template incluir {{ .Token }} — também um código
+   * de 6 dígitos (fallback).
    */
-  completeMagicLink: (code: string) => Promise<void>;
+  resendConfirmation: (email: string) => Promise<void>;
+  /**
+   * Fallback: confirma o cadastro com o código de 6 dígitos digitado
+   * manualmente.
+   */
+  confirmSignUpCode: (email: string, token: string) => Promise<void>;
+  /**
+   * Troca o `code` do link de confirmação (PKCE) por uma sessão. Usado na
+   * rota /callback.
+   */
+  completeEmailLink: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -57,30 +75,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       loading,
 
-      sendOtp: async (email, fullName) => {
-        const { error } = await supabase.auth.signInWithOtp({
+      signIn: async (email, cpf) => {
+        const { error } = await supabase.auth.signInWithPassword({
           email,
+          password: sanitizeCpf(cpf),
+        });
+        if (error) throw error;
+      },
+
+      signUp: async (email, cpf, fullName) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: sanitizeCpf(cpf),
           options: {
-            shouldCreateUser: true,
-            // Para onde o magic link redireciona após confirmar (web/nativo).
+            // Para onde o link de confirmação redireciona (web/nativo).
             emailRedirectTo: resolveRedirectUrl(),
             // Lido pelo trigger handle_new_user() para popular profiles.full_name
-            ...(fullName ? { data: { full_name: fullName } } : {}),
+            data: { full_name: fullName },
           },
         });
         if (error) throw error;
+        return { needsEmailConfirmation: !data.session };
       },
 
-      verifyOtp: async (email, token) => {
-        const { error } = await supabase.auth.verifyOtp({
+      resendConfirmation: async (email) => {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
           email,
-          token,
-          type: 'email',
+          options: { emailRedirectTo: resolveRedirectUrl() },
         });
         if (error) throw error;
       },
 
-      completeMagicLink: async (code) => {
+      confirmSignUpCode: async (email, token) => {
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: 'signup',
+        });
+        if (error) throw error;
+      },
+
+      completeEmailLink: async (code) => {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) throw error;
       },

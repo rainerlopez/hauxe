@@ -17,10 +17,10 @@ import { fontFamily, fontSize } from '../../src/theme/typography';
 const CODE_LENGTH = 6;
 
 export default function Verify() {
-  const { sendOtp, verifyOtp } = useAuth();
-  const { c }                  = useTheme();
-  const router                 = useRouter();
-  const { email = '', fullName = '' } = useLocalSearchParams<{ email: string; fullName?: string }>();
+  const { resendConfirmation, confirmSignUpCode } = useAuth();
+  const { c }    = useTheme();
+  const router   = useRouter();
+  const { email = '' } = useLocalSearchParams<{ email: string }>();
 
   const [digits,    setDigits]    = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [error,     setError]     = useState<string | null>(null);
@@ -54,8 +54,9 @@ export default function Verify() {
     if (!ready) return;
     setLoading(true);
     try {
-      await verifyOtp(email, code);
-      // Sessão estabelecida — guarda em _layout redireciona para (app)
+      await confirmSignUpCode(email, code);
+      // Conta confirmada e sessão estabelecida — guarda em _layout redireciona
+      // para (app). Próximos logins: e-mail + CPF.
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Código inválido. Tente novamente.');
       setDigits(Array(CODE_LENGTH).fill(''));
@@ -70,7 +71,7 @@ export default function Verify() {
     setResending(true);
     setResent(false);
     try {
-      await sendOtp(email, fullName || undefined);
+      await resendConfirmation(email);
       setResent(true);
       setDigits(Array(CODE_LENGTH).fill(''));
       inputs.current[0]?.focus();

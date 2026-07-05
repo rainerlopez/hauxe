@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 
 /**
- * URL para onde o magic link deve redirecionar após a confirmação.
+ * URL para onde o link de confirmação de cadastro deve redirecionar.
  *
  * - Web: a origin atual + /callback (em dev, http://localhost:8081/callback).
  * - Nativo: o deep link do app (hauxe://callback) — ou exp://.../--/callback no Expo Go.
