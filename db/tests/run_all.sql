@@ -16,3 +16,5 @@
 \i 05_ceremony_conductors_same_org.sql
 \echo '== 06 · Status assíncrono =='
 \i 06_async_status.sql
+\echo '== 07 · Captura de CPF (v12) =='
+\i 07_cpf_capture.sql

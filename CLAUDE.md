@@ -21,11 +21,11 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - 5 enums: user_role (super_admin/org_admin/conductor/participant), ceremony_status, registration_status (inclui 'reservada'), payment_status, payment_method
 - View: registration_progress (SECURITY INVOKER) — calcula vaga_ok, ficha_ok, pagamento_ok
 - Triggers de automação: trg_payment_status_sync e trg_anamnese_status_sync promovem inscrições para 'confirmada'
-- Trigger on_auth_user_created cria profile automaticamente
+- Trigger on_auth_user_created cria profile automaticamente; desde o patch v12 também grava profiles.cpf (11 dígitos, dos metadados do signUp) — v12 versionada no repo, PENDENTE de aplicar no projeto (pausado)
 - Trigger trg_anamnese_revision (AFTER UPDATE) → snapshot_anamnese_revision() SECURITY DEFINER → anamnese_revisions
 - Função simulate_payment(registration_id, amount, tier_id) SECURITY DEFINER — mock PIX para testes
 - 2 Storage buckets: ceremony-images (público, leitura livre/escrita staff), anamnese-files (privado, espelha RLS de anamneses). Convenção de caminho: {ceremony_id}/arquivo e {profile_id}/arquivo
-- Migrations versionadas: db/hauxe_schema.sql, db/hauxe_schema_patch_v02.sql, db/hauxe_schema_patch_v03_storage.sql, db/hauxe_schema_patch_v04_admin_rls.sql
+- Migrations versionadas: db/hauxe_schema.sql + patches v02–v10 e v12 (cpf capture; v11 = fixes de segurança na branch claude/weekend-integration, não mergeada). Suíte de testes em db/tests (run_all.sql)
 - Security Advisor: 6 WARNs residuais intencionais (helpers RLS + rls_auto_enable do Supabase)
 - PENDENTE: reconciliar policies de storage (db/v05) — 2 policies de ceremony-images com lógica errada (folder tratado como org_id em vez de ceremony_id); staff-read de anamnese-files ausente
 

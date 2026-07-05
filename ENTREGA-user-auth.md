@@ -16,9 +16,10 @@ produção; **nenhum** PR aberto ou mergeado; **nenhuma** mudança de schema/ban
 2. **CPF validado no cliente** (dígitos verificadores, módulo 11) com máscara
    `000.000.000-00`, e sempre **normalizado para 11 dígitos** antes de ir ao
    Supabase — `123.456.789-09` e `12345678909` autenticam igual.
-3. **Nada de schema**: o CPF não é gravado em nenhuma tabela; ele existe apenas
-   como hash de senha dentro do Supabase Auth. Decisões de schema ficaram
-   intactas (regra do projeto: nunca improvisar schema).
+3. ~~**Nada de schema**: o CPF não é gravado em nenhuma tabela~~ **Atualizado
+   no mesmo dia**: a gravação do CPF foi aprovada ("mande bala") — ver **§7**.
+   A coluna `profiles.cpf` já existia desde o v01; o patch **v12** passa a
+   populá-la no cadastro. Nenhuma tabela/coluna nova foi criada.
 4. **Validação**: `tsc --noEmit` limpo, `expo export -p web` com 0 erros, e
    **12/12 checagens Playwright** dirigindo as telas do build servido localmente
    (máscara, validação de CPF, erros tratados, copies novas) — §4.
@@ -105,4 +106,40 @@ de `.env` (mesma pendência que o projeto já tinha).
 
 **Interação com esta entrega:** nenhuma. A `v11` não toca autenticação e o
 `merge-tree` entre `main` e `weekend-integration` não acusa conflito; esta
-branch também não conflita com ela (conjuntos de arquivos disjuntos).
+branch também não conflita com ela (a `v12` foi numerada **depois** da `v11`
+justamente para as duas coexistirem; único ponto de contato é o append no
+`db/tests/run_all.sql`, trivial de resolver).
+
+---
+
+## 7. Adendo (05/07, mesma sessão) — persistência do CPF aprovada
+
+Decisão do produto: **gravar o CPF** ("mande bala"). O que foi feito:
+
+| # | Item | Entrega |
+|---|---|---|
+| 1 | Migration | `db/hauxe_schema_patch_v12_cpf_capture.sql` — `handle_new_user()` captura `raw_user_meta_data->>'cpf'` normalizado (11 dígitos; lixo vira NULL sem derrubar o cadastro) + CHECK de higiene `profiles_cpf_digits`. Idempotente |
+| 2 | App | `AuthContext.signUp` envia `cpf` (normalizado) nos metadados junto do `full_name` |
+| 3 | Teste | `db/tests/07_cpf_capture.sql` (4 casos: normalização, sem CPF, lixo, CHECK) + registrado no `run_all.sql` |
+
+**Fatos importantes:**
+- `profiles.cpf` **já existia** no schema v01 (nunca populada) — não houve
+  improviso de schema; o v04 já previa a coluna e sua nota LGPD (exposição da
+  coluna é responsabilidade da camada de app; o RLS por linha vale como está).
+- **Sem UNIQUE por enquanto** (decisão registrada no cabeçalho da v12): impor
+  unicidade bloquearia recadastro com outro e-mail — é decisão de produto,
+  fica para revisão explícita.
+- **Verificação real**: Postgres 16 local + mock do Supabase (da
+  `claude/weekend-review`), cadeia v01→v10+v12 aplicada limpa, suíte completa
+  **36/36 PASS** (inclui os 4 casos novos). `tsc --noEmit` limpo.
+
+**Aplicação em produção — PENDENTE de vocês:**
+- O projeto visível via MCP é **"hauxenda"** (`qpywcetodekuwvmtvuzi`,
+  sa-east-1) e está **INACTIVE (pausado)**. Obs.: o CLAUDE.md fala em projeto
+  "hauxe" — assumi que é o mesmo (único da conta, mesma região), confirmar.
+- A tentativa de restaurar o projeto para aplicar a v12 foi **bloqueada pelo
+  modo de permissões** da sessão (restauração de infra compartilhada exige
+  revisão humana). Ao restaurar o projeto (painel ou próxima sessão com
+  aprovação), aplicar a `v12` — ela é idempotente e independe da `v11`.
+- Enquanto a v12 não for aplicada, o app pode enviar `cpf` nos metadados sem
+  efeito colateral: o trigger atual simplesmente ignora a chave.

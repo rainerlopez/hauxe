@@ -21,8 +21,9 @@ interface AuthContextValue {
    */
   signIn: (email: string, cpf: string) => Promise<void>;
   /**
-   * Cria a conta com e-mail + CPF (senha). fullName é gravado nos metadados
-   * e lido pelo trigger handle_new_user() para popular profiles.full_name.
+   * Cria a conta com e-mail + CPF (senha). fullName e o CPF normalizado vão
+   * nos metadados e são lidos pelo trigger handle_new_user() para popular
+   * profiles.full_name e profiles.cpf (patch v12).
    * Retorna se ainda falta confirmar o e-mail (depende da config "Confirm
    * email" do projeto Supabase): sessão nula = confirmação pendente.
    */
@@ -90,8 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: {
             // Para onde o link de confirmação redireciona (web/nativo).
             emailRedirectTo: resolveRedirectUrl(),
-            // Lido pelo trigger handle_new_user() para popular profiles.full_name
-            data: { full_name: fullName },
+            // Lidos pelo trigger handle_new_user() para popular
+            // profiles.full_name e profiles.cpf (patch v12)
+            data: { full_name: fullName, cpf: sanitizeCpf(cpf) },
           },
         });
         if (error) throw error;
