@@ -32,7 +32,12 @@ export default function CheckEmail() {
       await resendConfirmation(email);
       setResent(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível reenviar.');
+      const raw = e instanceof Error ? e.message : '';
+      setError(
+        raw.includes('you can only request this after')
+          ? 'Aguarde alguns segundos antes de pedir um novo envio.'
+          : 'Não foi possível reenviar. Tente novamente.',
+      );
     } finally {
       setResending(false);
     }

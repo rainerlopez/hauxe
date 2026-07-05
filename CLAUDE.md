@@ -25,7 +25,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - Trigger trg_anamnese_revision (AFTER UPDATE) → snapshot_anamnese_revision() SECURITY DEFINER → anamnese_revisions
 - Função simulate_payment(registration_id, amount, tier_id) SECURITY DEFINER — mock PIX para testes
 - 2 Storage buckets: ceremony-images (público, leitura livre/escrita staff), anamnese-files (privado, espelha RLS de anamneses). Convenção de caminho: {ceremony_id}/arquivo e {profile_id}/arquivo
-- Migrations versionadas: db/hauxe_schema.sql + patches v02–v10 e v12 (cpf capture; v11 = fixes de segurança na branch claude/weekend-integration, não mergeada). Suíte de testes em db/tests (run_all.sql)
+- Migrations versionadas: db/hauxe_schema.sql + patches v02–v12, TODAS aplicadas no projeto (v11 = fix C1 capacidade + policies órfãs A1, migration 20260705160233; v12 = captura de CPF, migration 20260705154527). Suíte de testes em db/tests (run_all.sql, 33 casos) — rodar com mock weekend/sql/00_supabase_mock.sql em Postgres local
 - Security Advisor: 6 WARNs residuais intencionais (helpers RLS + rls_auto_enable do Supabase)
 - PENDENTE: reconciliar policies de storage (db/v05) — 2 policies de ceremony-images com lógica errada (folder tratado como org_id em vez de ceremony_id); staff-read de anamnese-files ausente
 

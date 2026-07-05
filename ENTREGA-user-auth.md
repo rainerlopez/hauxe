@@ -94,15 +94,15 @@ de `.env` (mesma pendência que o projeto já tinha).
    pedido; a doc do Claude Code só aceita `low/medium/high/xhigh` em settings
    (`max` é por sessão), então na prática o harness aplica o maior nível aceito.
 
-## 6. Estado das outras branches `claude/*` (verificado em 05/07/2026)
+## 6. Estado das outras branches `claude/*` (atualizado 05/07/2026, pós-zeragem)
 
-| Branch | Estado vs `main` | Conteúdo / ação sugerida |
-|---|---|---|
-| `claude/anamnese-staff-read-policy-8k2kif` | **mergeada** (PR #4) · 0 à frente, 8 atrás | Pode ser apagada |
-| `claude/progress-review-next-steps-AFC4Z` | **mergeada** · 0 à frente, 21 atrás | Pode ser apagada |
-| `claude/weekend-integration` | **NÃO mergeada** · 2 à frente, 0 atrás, **sem conflito** | Migration `v11` (fix do bypass de capacidade **C1** — que existe em produção — + policies órfãs A1) + regressão d5. O `weekend/MONDAY-BRIEF.md` recomenda priorizar; continua valendo |
-| `claude/weekend-review` | **NÃO mergeada** · 9 à frente, 0 atrás | Relatórios da auditoria (`weekend/REVIEW.md`, `MONDAY-BRIEF.md`, `ROTEIRO-TESTE.md`, `TEST-RESULTS.md`) |
-| `claude/user-auth` | **esta entrega** | App + settings; sem interseção de arquivos com a `v11` (ela só toca `db/` — merge em qualquer ordem) |
+| Branch | Estado final |
+|---|---|
+| `claude/anamnese-staff-read-policy-8k2kif` | Mergeada (PR #4) · **apagada na zeragem** |
+| `claude/progress-review-next-steps-AFC4Z` | Mergeada · **apagada na zeragem** |
+| `claude/weekend-review` | **Mergeada via PR #8** (docs da auditoria) · apagada |
+| `claude/weekend-integration` | **Mergeada via PR #9** (v11) · **v11 APLICADA em produção** (migration `20260705160233`; C1 fechado, 0 policies órfãs) · apagada |
+| `claude/user-auth` | **Mergeada via PR #10** (esta entrega) · apagada |
 
 **Interação com esta entrega:** nenhuma. A `v11` não toca autenticação e o
 `merge-tree` entre `main` e `weekend-integration` não acusa conflito; esta
@@ -131,7 +131,9 @@ Decisão do produto: **gravar o CPF** ("mande bala"). O que foi feito:
   fica para revisão explícita.
 - **Verificação real**: Postgres 16 local + mock do Supabase (da
   `claude/weekend-review`), cadeia v01→v10+v12 aplicada limpa, suíte completa
-  **36/36 PASS** (inclui os 4 casos novos). `tsc --noEmit` limpo.
+  **32/32 PASS** (inclui os 4 casos novos; errata: uma versão anterior deste
+  relatório dizia "36/36" por erro de contagem). Com a v11 integrada o total
+  passa a **33/33** (caso d5). `tsc --noEmit` limpo.
 
 **Aplicação em produção — ✅ FEITA (05/07, após ajuste do conector):**
 - Projeto **"hauxe"** (`xgjnsyffibdahymaropx`, sa-east-1) reativado pelo

@@ -76,7 +76,12 @@ export default function Verify() {
       setDigits(Array(CODE_LENGTH).fill(''));
       inputs.current[0]?.focus();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível reenviar.');
+      const raw = e instanceof Error ? e.message : '';
+      setError(
+        raw.includes('you can only request this after')
+          ? 'Aguarde alguns segundos antes de pedir um novo envio.'
+          : 'Não foi possível reenviar. Tente novamente.',
+      );
     } finally {
       setResending(false);
     }
