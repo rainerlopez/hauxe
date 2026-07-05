@@ -133,13 +133,18 @@ Decisão do produto: **gravar o CPF** ("mande bala"). O que foi feito:
   `claude/weekend-review`), cadeia v01→v10+v12 aplicada limpa, suíte completa
   **36/36 PASS** (inclui os 4 casos novos). `tsc --noEmit` limpo.
 
-**Aplicação em produção — PENDENTE de vocês:**
-- O projeto visível via MCP é **"hauxenda"** (`qpywcetodekuwvmtvuzi`,
-  sa-east-1) e está **INACTIVE (pausado)**. Obs.: o CLAUDE.md fala em projeto
-  "hauxe" — assumi que é o mesmo (único da conta, mesma região), confirmar.
-- A tentativa de restaurar o projeto para aplicar a v12 foi **bloqueada pelo
-  modo de permissões** da sessão (restauração de infra compartilhada exige
-  revisão humana). Ao restaurar o projeto (painel ou próxima sessão com
-  aprovação), aplicar a `v12` — ela é idempotente e independe da `v11`.
-- Enquanto a v12 não for aplicada, o app pode enviar `cpf` nos metadados sem
-  efeito colateral: o trigger atual simplesmente ignora a chave.
+**Aplicação em produção — ✅ FEITA (05/07, após ajuste do conector):**
+- Projeto **"hauxe"** (`xgjnsyffibdahymaropx`, sa-east-1) reativado pelo
+  usuário; a `v12` foi aplicada via MCP (`apply_migration`, versão
+  `20260705154527`) e verificada: CHECK `profiles_cpf_digits` presente,
+  `handle_new_user()` capturando cpf, trigger `on_auth_user_created` ativo.
+  Histórico anterior ia até a v10 — consistente com o repo (v11 continua só
+  na branch `claude/weekend-integration`).
+- Security Advisor pós-migration: **nenhum achado novo** — só os 6 WARNs
+  residuais intencionais já documentados, mais um aviso pré-existente de
+  "Leaked Password Protection" desativada. **Nota operacional:** manter essa
+  proteção desativada — ela checa senhas contra HaveIBeenPwned e poderia
+  recusar cadastros cujo CPF apareça em vazamentos públicos, quebrando o
+  fluxo escolhido.
+- Os 2 profiles existentes seguem com `cpf` NULL (sem backfill — pendência
+  §5.1 continua valendo para os usuários antigos).

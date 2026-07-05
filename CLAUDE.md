@@ -21,7 +21,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - 5 enums: user_role (super_admin/org_admin/conductor/participant), ceremony_status, registration_status (inclui 'reservada'), payment_status, payment_method
 - View: registration_progress (SECURITY INVOKER) — calcula vaga_ok, ficha_ok, pagamento_ok
 - Triggers de automação: trg_payment_status_sync e trg_anamnese_status_sync promovem inscrições para 'confirmada'
-- Trigger on_auth_user_created cria profile automaticamente; desde o patch v12 também grava profiles.cpf (11 dígitos, dos metadados do signUp) — v12 versionada no repo, PENDENTE de aplicar no projeto (pausado)
+- Trigger on_auth_user_created cria profile automaticamente; desde o patch v12 também grava profiles.cpf (11 dígitos, dos metadados do signUp) — v12 APLICADA no projeto (migration 20260705154527)
 - Trigger trg_anamnese_revision (AFTER UPDATE) → snapshot_anamnese_revision() SECURITY DEFINER → anamnese_revisions
 - Função simulate_payment(registration_id, amount, tier_id) SECURITY DEFINER — mock PIX para testes
 - 2 Storage buckets: ceremony-images (público, leitura livre/escrita staff), anamnese-files (privado, espelha RLS de anamneses). Convenção de caminho: {ceremony_id}/arquivo e {profile_id}/arquivo
