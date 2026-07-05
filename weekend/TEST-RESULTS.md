@@ -267,3 +267,58 @@ de produto** — vai para o MONDAY-BRIEF, não é corrigido na tarefa 4.
 
 **Anexos reprodutíveis** (nesta branch de memória): `weekend/sql/00_supabase_mock.sql`
 (mock do ambiente Supabase) e `weekend/sql/99_probes.sql` (sondas C1/C2/A1).
+
+---
+
+## Tarefa 4 · Correções aplicadas e re-testadas (exec 4, 2026-07-05)
+
+As falhas/achados acionáveis da tarefa 3 viraram a migration **`v11`** +
+ajustes de teste, **commitados na `claude/weekend-integration`** (não na `main`,
+não nas branches dos PRs):
+
+| Commit (`claude/weekend-integration`) | Conteúdo |
+|---|---|
+| `e6643c5` | `db/hauxe_schema_patch_v11_security_fixes.sql` — F1 (drop das 4 policies órfãs da v03) + F2 (guard `OLD.ceremony_id = NEW.ceremony_id` no `check_ceremony_capacity`) |
+| `2d21679` | `db/tests/04_capacity.sql` (caso d5, regressão de C1) + `db/tests/run_all.sql` (`\i` → `\ir`, corrige M4) |
+
+### O que a v11 faz
+
+- **F1 (A1):** `DROP POLICY IF EXISTS` de `ceremony-images staff write/update/delete`
+  e `anamnese-files staff read` — os nomes **sem hífen** que a v03 criou com o
+  cast `(foldername(name))[1]::uuid`. As versões seguras (com hífen, v05/v07/v08,
+  comparação texto/texto) já existem e permanecem. Idempotente e inócuo em
+  produção (lá esses nomes não existem).
+- **F2 (C1):** `CREATE OR REPLACE` de `check_ceremony_capacity()` idêntico à v09,
+  exceto o early-return de UPDATE, que agora exige **mesma cerimônia**. Troca de
+  `ceremony_id` com status ocupante deixa de furar a capacidade.
+- **M4:** `run_all.sql` passa a usar `\ir` (include relativo ao script) — roda de
+  qualquer cwd, inclusive da raiz do repo.
+
+### Verificação (banco fresh `v01→v11`, mesmo cluster local)
+
+Apliquei a cadeia **inteira incluindo a v11** num banco novo e re-rodei sondas +
+suíte **a partir da raiz do repo** (exercitando também o fix M4):
+
+| Verificação | Antes (v10) | Depois (v11) |
+|---|---|---|
+| Sonda P1 — bypass de capacidade (C1) | 🔴 VULNERAVEL (cap=1 → 2 ocupantes) | ✅ **PROTEGIDO** (`ceremony_full`) |
+| Sonda P3 — `anamnese-files` path não-UUID (A1) | 🔴 VULNERAVEL (`22P02`) | ✅ **PROTEGIDO** (consulta ok, 0 linhas) |
+| Sonda P2 — dono auto-confirma (C2) | 🔴 VULNERAVEL | 🔴 VULNERAVEL *(intencional — fora de escopo, decisão de produto)* |
+| Suíte 02 (storage conductors) | frágil (verde só com `ceremonies` vazia) | ✅ 4/4 PASS **determinístico** (policies órfãs removidas) |
+| Suíte completa (a partir da raiz) | `\i` falhava fora de `db/tests/` | ✅ roda de qualquer cwd; **29/29 PASS** |
+| Caso novo d5 (regressão C1) | — | ✅ PASS no v11 · **contra-prova:** FAIL sem v11 (`sem erro (bypass!)`) |
+
+**Total pós-v11: 29/29 PASS, 0 FAIL.** A policy órfã da v03 sumiu (a suíte 02
+fica verde de forma robusta, não mais dependente de tabela vazia), o bypass de
+capacidade está fechado e coberto por regressão, e o `run_all.sql` roda de
+qualquer diretório.
+
+### Não corrigido nesta tarefa (por decisão consciente → MONDAY-BRIEF)
+
+- **C2** (dono se auto-promove a `confirmada`/`check_in` e edita colunas
+  sensíveis via policy owner `FOR ALL`): exige decisão de produto sobre quais
+  transições o participante pode fazer. Sonda P2 continua VULNERAVEL de
+  propósito — **não** improvisei uma restrição de coluna sem aprovação.
+- **M1/M6** (escopo LGPD do staff-read; intenção da policy de avatar) e **A3**
+  (validação server-side de `chosen_contribution` na integração PIX): idem,
+  registrados para a conversa de segunda.
