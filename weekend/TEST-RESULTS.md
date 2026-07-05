@@ -207,3 +207,63 @@ como migration `v11` na `claude/weekend-integration` na tarefa 4.
   Em produção o incidente descrito na v07 confirma o mesmo efeito. Não se deve
   confiar em ordem de avaliação para "escapar" do cast — a remoção da policy é a
   única correção robusta.
+
+---
+
+## Apêndice · Reconciliação de duas execuções paralelas (2026-07-05)
+
+> **Contexto:** duas execuções do agente de fim de semana partiram do mesmo
+> commit da tarefa 2 e rodaram a tarefa 3 de forma independente. Uma observou
+> **24/28** (suíte 02 estoura); a outra observou **28/28** (suíte 02 verde). Os
+> dois números são **reais** — esta seção explica por quê, e a conclusão
+> **fortalece** o encaminhamento de F1, não o contradiz.
+
+**Causa-raiz da divergência — o cast da v03 é avaliado condicionalmente.** A
+policy órfã `ceremony-images staff write` (v03) tem o cast dentro de um EXISTS:
+
+```sql
+EXISTS (SELECT 1 FROM ceremonies c
+        WHERE c.id = (storage.foldername(name))[1]::uuid  -- 'conductors'::uuid
+          AND is_org_member(c.org_id))
+```
+
+O `'conductors'::uuid` só lança `22P02` **quando é efetivamente avaliado**. Isso
+depende do estado/planner:
+
+| Condição no momento do INSERT de avatar | Cast é avaliado? | Suíte 02 |
+|---|---|---|
+| Tabela `ceremonies` **vazia** e planner adia o cast (não faz constant-folding) | não (EXISTS sobre 0 linhas) | **PASS** |
+| Tabela `ceremonies` **com qualquer linha** | sim (por linha) → `22P02` | **FAIL** |
+| Planner faz constant-folding de `'conductors'::uuid` no plano | sim (em tempo de plano) → `22P02` | **FAIL** |
+
+A suíte 02 **não semeia `ceremonies`** (`grep -c 'INSERT INTO ceremonies'
+02_storage_conductors.sql` = 0). Por isso, num banco **exatamente vazio** de
+cerimônias e num planner que adia o cast, a suíte passa (foi o que a execução
+"28/28" observou). Reproduzi ambos os lados no mesmo cluster: com a tabela
+`ceremonies` vazia o INSERT passa; inserindo **uma** cerimônia antes, o **mesmo**
+INSERT estoura com `invalid input syntax for type uuid: "conductors"`.
+
+**Consequência prática (mais grave que "às vezes falha"):** produção **sempre**
+tem cerimônias, então em produção a policy da v03 detona de forma
+**determinística** em qualquer upload de avatar (`conductors/…`) — foi exatamente
+o incidente que a v07 descreve ("bloqueava TODOS os uploads no bucket"). O
+"28/28" só acontece num artefato de teste com `ceremonies` vazia; **não** é o
+comportamento de um ambiente real. **F1 (drop das policies órfãs da v03)
+continua sendo a correção correta e necessária** — e agora com a justificativa
+reforçada de que o verde da suíte 02 é frágil (depende de a tabela estar vazia).
+
+**Sondas adicionais desta execução** (`weekend/sql/99_probes.sql`, anexo), todas
+reproduzidas no cluster local — reforçam achados da revisão além de C1:
+
+| Sonda | Achado | Resultado |
+|---|---|---|
+| P2) dono faz `UPDATE registrations SET status='confirmada'` sem ficha/pagamento | **C2** | 🔴 status virou `confirmada` — auto-promoção confirmada |
+| P3) staff faz `SELECT` em `anamnese-files` com pasta **não-UUID** | **A1 (vertente anamnese)** | 🔴 `ERRO 22P02` do cast `::uuid` da policy v03 `anamnese-files staff read` — mesma classe do F1, no outro bucket |
+
+P3 é a prova direta de que o drop de `anamnese-files staff read` (já incluído no
+F1) é necessário: a suíte 03 passa só porque usa paths UUID válidos; um path fora
+do formato estoura a leitura da staff. C2 (P2) **permanece bloqueado por decisão
+de produto** — vai para o MONDAY-BRIEF, não é corrigido na tarefa 4.
+
+**Anexos reprodutíveis** (nesta branch de memória): `weekend/sql/00_supabase_mock.sql`
+(mock do ambiente Supabase) e `weekend/sql/99_probes.sql` (sondas C1/C2/A1).
