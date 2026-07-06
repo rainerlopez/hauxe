@@ -60,11 +60,11 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 - [x] `pix-webhook` deployada (verify_jwt off, v1 ACTIVE) — **endurecida para fail-closed**: sem PIX_WEBHOOK_SECRET rejeita tudo (verificado vivo: POST sem assinatura → 401)
 - [x] Confirmação mock documentada no README (SQL privilegiado; simulate_payment não existe mais)
 
-### Fase 4 — Console da Kao Fase 2
-- [ ] Hook `useOrgRegistrations` (inscritos da cerimônia + progresso)
-- [ ] Tela `/admin/inscritos` (lista com chips vaga/ficha/pagamento)
-- [ ] Detalhe da ficha (chama `log_anamnese_view` antes de ler) + check-in
-- [ ] `tsc --noEmit` limpo
+### Fase 4 — Console da Kao Fase 2 — ✅ CONCLUÍDA (06/07)
+- [x] Hook `useOrgRegistrations` (inscritos da próxima cerimônia + progresso via registration_progress; staff RLS já cobria payments/profiles)
+- [x] Tela `/admin/inscritos` (lista com chips Ficha/PIX, resumo de vagas, canceladas separadas)
+- [x] Detalhe `/admin/inscritos/[id]`: contato, inscrição, ficha completa — `log_anamnese_view` SEMPRE antes de ler (trilha LGPD; nota 🔒 na UI) + botão check-in
+- [x] Card "Inscritos" no dashboard do console; `tsc --noEmit` limpo
 
 ### Fase 5 — Fechamento
 - [ ] Remover `app/(admin)/` (duplicata morta; console real é `app/admin/`)

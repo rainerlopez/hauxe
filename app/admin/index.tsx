@@ -70,6 +70,25 @@ export default function AdminHomeScreen() {
 
       {/* Navegação do console */}
       <Pressable
+        onPress={() => router.push('/admin/inscritos' as never)}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.navCard,
+          { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.75 : 1 },
+        ]}
+      >
+        <View style={styles.navCardText}>
+          <Text style={[styles.navCardTitle, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+            Inscritos
+          </Text>
+          <Text style={[styles.navCardSub, { color: c.text2, fontFamily: fontFamily.sans }]}>
+            Quem vem na próxima cerimônia, fichas e check-in
+          </Text>
+        </View>
+        <Text style={[styles.navCardArrow, { color: c.text2, fontFamily: fontFamily.sans }]}>→</Text>
+      </Pressable>
+
+      <Pressable
         onPress={() => router.push('/admin/condutores' as never)}
         accessibilityRole="button"
         style={({ pressed }) => [
