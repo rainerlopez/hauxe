@@ -1,0 +1,33 @@
+# CI mínimo do Hauxe: typecheck + build web.
+# Os EXPO_PUBLIC_* de CI são dummies — só destravam o inline do Metro;
+# nenhum teste de CI fala com o Supabase real.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: npx expo export -p web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://ci-dummy.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-key
