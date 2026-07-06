@@ -18,9 +18,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // TODO: verificar assinatura HMAC/token do provedor (header específico).
 // Rejeita com 401 se inválido. Sem isso, qualquer um poderia confirmar pagamentos.
+// FAIL-CLOSED (v13/D8): sem PIX_WEBHOOK_SECRET configurada a função rejeita
+// tudo — um webhook público que aceita qualquer payload seria o mesmo furo
+// da simulate_payment que removemos. No modo mock, confirme pagamentos via
+// SQL privilegiado (ver supabase/functions/README.md).
 function isValidSignature(req: Request): boolean {
   const secret = Deno.env.get('PIX_WEBHOOK_SECRET');
-  if (!secret) return true; // ambiente sem secret = modo de testes (mock)
+  if (!secret) return false;
   const provided = req.headers.get('x-webhook-signature') ?? '';
   // TODO: comparar com HMAC do corpo. Placeholder de igualdade simples.
   return provided === secret;

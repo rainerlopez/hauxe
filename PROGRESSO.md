@@ -49,16 +49,16 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 - [x] v13 APLICADA em produção (migration `hauxe_schema_patch_v13_security_hardening`) + sondas vivas com rollback: participante puro NÃO se auto-confirma/check-in/troca cerimônia (42501); brings_food/notes/cancelar OK; staff (org_admin) segue livre
 - [x] Advisors pós-migration: WARN de listagem do bucket eliminado; 2 WARNs de simulate_payment eliminados; +1 WARN intencional novo (`log_anamnese_view`, valida staff internamente). Residuais intencionais inalterados.
 
-### Fase 2 — Inscrição do participante (app)
-- [ ] Hook `useAvailableCeremonies` + `useEnroll` (INSERT `status='reservada'`; reinscrição = UPDATE de cancelada)
-- [ ] Tela `(app)/cerimonia/[id].tsx` (detalhe + "Garantir minha vaga") com estados: lotada / já inscrito / erro
-- [ ] Hub estado "sem inscrição" lista cerimônias publicadas
-- [ ] `tsc --noEmit` limpo
+### Fase 2 — Inscrição do participante (app) — ✅ CONCLUÍDA (06/07)
+- [x] Hook `useAvailableCeremonies` + `useEnroll` (INSERT `status='reservada'`; reinscrição = UPDATE de cancelada; `ceremony_full` tratado)
+- [x] Tela `(app)/cerimonia/[id].tsx` (detalhe + "Garantir minha vaga") com estados: lotada / não encontrada / erro
+- [x] Hub estado "sem inscrição" lista cerimônias publicadas futuras
+- [x] `tsc --noEmit` limpo
 
-### Fase 3 — Edge Functions deployadas (modo mock)
-- [ ] `create-pix-charge` deployada (verify_jwt on)
-- [ ] `pix-webhook` deployada (verify_jwt off)
-- [ ] Fluxo PIX mock verificado contra produção
+### Fase 3 — Edge Functions deployadas (modo mock) — ✅ CONCLUÍDA (06/07)
+- [x] `create-pix-charge` deployada (verify_jwt on, v1 ACTIVE)
+- [x] `pix-webhook` deployada (verify_jwt off, v1 ACTIVE) — **endurecida para fail-closed**: sem PIX_WEBHOOK_SECRET rejeita tudo (verificado vivo: POST sem assinatura → 401)
+- [x] Confirmação mock documentada no README (SQL privilegiado; simulate_payment não existe mais)
 
 ### Fase 4 — Console da Kao Fase 2
 - [ ] Hook `useOrgRegistrations` (inscritos da cerimônia + progresso)

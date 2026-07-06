@@ -11,8 +11,14 @@ Funções Deno do fluxo de pagamento PIX.
 
 ## Estado atual
 
+- **DEPLOYADAS em produção (06/07/2026)** — `create-pix-charge` (verify_jwt on)
+  e `pix-webhook` (verify_jwt off), ambas em modo mock.
 - **Provedor mockado.** Sem `PIX_PROVIDER` definido, `create-pix-charge` gera um QR Code de teste
   (via `api.qrserver.com`) e um `provider_txid` fake. Suficiente para validar app + triggers.
+- **`pix-webhook` é fail-closed**: sem `PIX_WEBHOOK_SECRET` configurada, rejeita
+  TUDO com 401 (verificado em produção). Um webhook aberto seria o mesmo furo da
+  `simulate_payment`, removida na v13. No modo mock, confirme pagamentos via SQL
+  (seção abaixo).
 - A integração real (Asaas/MercadoPago) está marcada com `TODO` em ambas as funções
   (chamada HTTP ao provedor e verificação de assinatura do webhook).
 
