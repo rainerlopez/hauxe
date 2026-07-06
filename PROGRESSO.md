@@ -43,11 +43,11 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 
 ## Checklist de execução
 
-### Fase 1 — Blindagem (v13) no banco
-- [ ] v13 escrita (`db/hauxe_schema_patch_v13_security_hardening.sql`): guard de UPDATE do dono (D1/D2), drop `simulate_payment` (D8), M3 (D9), M1 (D4), M6 (D5), A5 (D7), RPC `log_anamnese_view` (D6), COMMENTs de deprecação (D3)
-- [ ] Testes: suite `08_owner_update_guard.sql` + ajuste do b1 (02_storage) + `run_all.sql`
-- [ ] v13 APLICADA em produção + verificada (probes com ROLLBACK)
-- [ ] Advisors re-checados pós-migration
+### Fase 1 — Blindagem (v13) no banco — ✅ CONCLUÍDA (06/07)
+- [x] v13 escrita (`db/hauxe_schema_patch_v13_security_hardening.sql`): guard de INSERT/UPDATE do dono (D1/D2), drop `simulate_payment` (D8), M3 (D9), M1 (D4), M6 (D5), A5 (D7), RPC `log_anamnese_view` (D6), COMMENTs de deprecação (D3)
+- [x] Testes: suite `08_registration_write_guard.sql` (12 casos) + b1/b1b/b2/b3/b4/b5 (02) + c6 (03) + `run_all.sql` → **48/48 PASS** no Postgres 16 local (cadeia v01→v13 limpa, v13 idempotente)
+- [x] v13 APLICADA em produção (migration `hauxe_schema_patch_v13_security_hardening`) + sondas vivas com rollback: participante puro NÃO se auto-confirma/check-in/troca cerimônia (42501); brings_food/notes/cancelar OK; staff (org_admin) segue livre
+- [x] Advisors pós-migration: WARN de listagem do bucket eliminado; 2 WARNs de simulate_payment eliminados; +1 WARN intencional novo (`log_anamnese_view`, valida staff internamente). Residuais intencionais inalterados.
 
 ### Fase 2 — Inscrição do participante (app)
 - [ ] Hook `useAvailableCeremonies` + `useEnroll` (INSERT `status='reservada'`; reinscrição = UPDATE de cancelada)
@@ -79,4 +79,5 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 
 | Quando | O quê | Commit |
 |---|---|---|
-| 06/07 | Review completa + decisões D1–D9 + este arquivo | (este commit) |
+| 06/07 | Review completa + decisões D1–D9 + este arquivo | `6519746` |
+| 06/07 | Fase 1: v13 (C2 fechado!) escrita, testada 48/48 e APLICADA em produção | (este commit) |

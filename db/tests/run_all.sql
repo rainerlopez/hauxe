@@ -20,3 +20,5 @@
 \ir 06_async_status.sql
 \echo '== 07 · Captura de CPF (v12) =='
 \ir 07_cpf_capture.sql
+\echo '== 08 · Guard de escrita em registrations (v13) =='
+\ir 08_registration_write_guard.sql

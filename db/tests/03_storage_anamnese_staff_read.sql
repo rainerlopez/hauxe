@@ -97,5 +97,20 @@ BEGIN
   INSERT INTO _r VALUES('anamnese staff-read','c5) outro participante NÃO lê ficha alheia','0',n::text, CASE WHEN n=0 THEN 'PASS' ELSE 'FAIL' END);
 END $$;
 
+-- c6) v13/D4 (LGPD): inscrição CANCELADA → staff perde o acesso à ficha
+DO $$
+DECLARE n int;
+BEGIN
+  UPDATE registrations SET status='cancelada'
+   WHERE ceremony_id='ce100000-0000-0000-0000-000000000001'
+     AND profile_id='d0000000-0000-0000-0000-000000000001';
+  PERFORM set_config('request.jwt.claims','{"sub":"a1110000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  SELECT count(*) INTO n FROM storage.objects
+   WHERE bucket_id='anamnese-files' AND name='d0000000-0000-0000-0000-000000000001/intake.pdf';
+  EXECUTE 'RESET ROLE';
+  INSERT INTO _r VALUES('anamnese staff-read','c6) inscrição cancelada → staff NÃO lê','0',n::text, CASE WHEN n=0 THEN 'PASS' ELSE 'FAIL' END);
+END $$;
+
 SELECT area, caso, esperado, obtido, resultado FROM _r ORDER BY caso;
 ROLLBACK;
