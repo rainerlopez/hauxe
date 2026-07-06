@@ -8,6 +8,8 @@ export default function AppLayout() {
       {/* Telas de tarefa acessadas a partir do hub — não viram aba */}
       <Tabs.Screen name="anamnese" options={{ href: null }} />
       <Tabs.Screen name="contribuicao" options={{ href: null }} />
+      {/* Convite/inscrição (deep link do WhatsApp) — também não vira aba */}
+      <Tabs.Screen name="cerimonia/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

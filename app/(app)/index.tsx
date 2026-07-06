@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Screen } from '../../src/components';
 import { useAuth } from '../../src/features/auth';
 import { useRegistration } from '../../src/features/registration/useRegistration';
+import { useAvailableCeremonies } from '../../src/features/registration/useAvailableCeremonies';
 import { useTheme } from '../../src/theme/useTheme';
 import { borderRadius, spacing } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
@@ -110,6 +111,7 @@ export default function HubScreen() {
   const { c }    = useTheme();
   const router   = useRouter();
   const regState = useRegistration();
+  const avail    = useAvailableCeremonies();
 
   // ── estado: carregando ──
   if (regState.phase === 'loading') {
@@ -122,7 +124,7 @@ export default function HubScreen() {
     );
   }
 
-  // ── estado: sem inscrição ──
+  // ── estado: sem inscrição → cerimônias abertas ──
   if (regState.phase === 'none' || regState.phase === 'error') {
     return (
       <Screen>
@@ -134,13 +136,47 @@ export default function HubScreen() {
           Olá{user?.email ? `, ${user.email.split('@')[0]}` : ''}!
         </Text>
         <Text style={[styles.noRegSub, { color: c.text2, fontFamily: fontFamily.sans }]}>
-          Você ainda não tem inscrição em nenhuma cerimônia.
+          {avail.phase === 'ready'
+            ? 'Estas são as próximas cerimônias do espaço.'
+            : 'Você ainda não tem inscrição em nenhuma cerimônia.'}
         </Text>
-        <View style={[styles.trustNote, { backgroundColor: c.tint, borderColor: c.border2 }]}>
-          <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
-            🌿{'  '}Quando uma cerimônia estiver disponível, ela vai aparecer aqui.
-          </Text>
-        </View>
+
+        {avail.phase === 'loading' && <ActivityIndicator color={c.forest} />}
+
+        {avail.phase === 'ready' && (
+          <View style={styles.taskSection}>
+            {avail.ceremonies.map((cer) => (
+              <Pressable
+                key={cer.id}
+                onPress={() => router.push(`/cerimonia/${cer.id}` as never)}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.cerCard,
+                  { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.82 : 1 },
+                ]}
+              >
+                <View style={styles.cerCardText}>
+                  <Text style={[styles.cerCardTitle, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+                    {cer.title}
+                  </Text>
+                  <Text style={[styles.cerCardDate, { color: c.text2, fontFamily: fontFamily.sans }]}>
+                    {formatDate(cer.starts_at)}
+                    {cer.my_status === 'cancelada' ? ' · você cancelou — dá para refazer' : ''}
+                  </Text>
+                </View>
+                <Text style={[styles.taskChevron, { color: c.text3 }]}>›</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {(avail.phase === 'empty' || avail.phase === 'error') && (
+          <View style={[styles.trustNote, { backgroundColor: c.tint, borderColor: c.border2 }]}>
+            <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
+              🌿{'  '}Quando uma cerimônia estiver disponível, ela vai aparecer aqui.
+            </Text>
+          </View>
+        )}
       </Screen>
     );
   }
@@ -314,6 +350,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
   footerText: { fontSize: fontSize.aux, lineHeight: 20 },
+
+  cerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.card,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  cerCardText:  { flex: 1 },
+  cerCardTitle: { fontSize: fontSize.body, lineHeight: 20 },
+  cerCardDate:  { fontSize: fontSize.aux, marginTop: 2 },
 
   noRegTitle: {
     fontSize: fontSize.title,
