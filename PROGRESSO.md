@@ -66,12 +66,23 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 - [x] Detalhe `/admin/inscritos/[id]`: contato, inscrição, ficha completa — `log_anamnese_view` SEMPRE antes de ler (trilha LGPD; nota 🔒 na UI) + botão check-in
 - [x] Card "Inscritos" no dashboard do console; `tsc --noEmit` limpo
 
-### Fase 5 — Fechamento
-- [ ] Remover `app/(admin)/` (duplicata morta; console real é `app/admin/`)
-- [ ] Fontes via expo-font (Schibsted Grotesk + Fraunces)
-- [ ] CLAUDE.md atualizado (storage já reconciliado, v13, novos fluxos)
-- [ ] CI GitHub Actions (tsc + expo export) — pode falhar por permissão de workflow; se falhar, documentar
-- [ ] `expo export -p web` com 0 erros
+### Fase 5 — Fechamento — ✅ CONCLUÍDA (06/07)
+- [x] Removido `app/(admin)/` (duplicata morta; console real é `app/admin/`; nada referenciava)
+- [x] Fontes: JÁ estavam carregadas via useFonts no app/_layout (CLAUDE.md estava desatualizado — nada a fazer)
+- [x] CLAUDE.md atualizado (v13, storage reconciliado, tiers fonte única, functions deployadas, 48/48)
+- [x] CI GitHub Actions (.github/workflows/ci.yml: pnpm + typecheck + expo export) — push aceito
+- [x] `expo export -p web` com 0 erros (18 rotas; exige .env — Metro faz cache do inline: rebuild com -c ao trocar env!)
+
+### Verificação fim-a-fim (e2e real contra PRODUÇÃO) — ✅ 11/11 PASS (06/07)
+Playwright dirigindo o build web servido localmente, backend = Supabase real
+(ponte de rede: Chromium não atravessa o agent proxy do ambiente; chamadas ao
+Supabase interceptadas via page.route → request context do Playwright):
+1. Login e-mail+CPF (rainerdev + CPF real setado hoje) → hub ✓
+2. Hub mostra a cerimônia real (Paka Shahu) e inscrição confirmada ✓
+3. Console da Kao (guard staff) + card Inscritos ✓
+4. /admin/inscritos: lista com chips Ficha/PIX + resumo de vagas ✓
+5. Ficha do inscrito abre com dados de saúde + nota de trilha LGPD ✓
+6. **audit_log conferido no banco**: view_anamnese gravado no momento do clique ✓
 
 ---
 
@@ -79,5 +90,15 @@ Cada decisão segue a recomendação da auditoria de fim de semana (`weekend/REV
 
 | Quando | O quê | Commit |
 |---|---|---|
-| 06/07 | Review completa + decisões D1–D9 + este arquivo | `6519746` |
-| 06/07 | Fase 1: v13 (C2 fechado!) escrita, testada 48/48 e APLICADA em produção | (este commit) |
+| 06/07 | Review completa + decisões D1–D9 + este arquivo | `699685a` |
+| 06/07 | Fase 1: v13 (C2 fechado!) escrita, testada 48/48 e APLICADA em produção | `4aad2ba` |
+| 06/07 | Fase 2: fluxo de inscrição do participante (cerimonia/[id] + hub) | `8de2089` |
+| 06/07 | Fase 3: Edge Functions deployadas (mock) + webhook fail-closed | `c0cf496` |
+| 06/07 | Fase 4: Console da Kao — inscritos, fichas (trilha LGPD) e check-in | `c14882e` |
+| 06/07 | Fase 5: limpeza + CLAUDE.md + CI | `4ee8430`, `6e03624` |
+| 06/07 | E2E 11/11 PASS contra produção (login→hub→console→ficha→audit_log) | (este commit) |
+
+## Estado ao fim de 06/07 — ETAPA TECNICAMENTE FECHADA 🎉
+Falta apenas o que depende de humanos: as ações de painel listadas acima e as
+credenciais do provedor PIX (o fluxo roda em mock até lá). Próxima fronteira
+de produto: criação de cerimônia no console (Fase 3b) e integração PIX real.
