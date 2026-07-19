@@ -38,7 +38,7 @@ function Chip({ ok, label }: { ok: boolean; label: string }) {
       style={[
         styles.chip,
         {
-          backgroundColor: ok ? 'rgba(47,125,91,0.10)' : c.tint,
+          backgroundColor: ok ? c.successSoft : c.tint,
           borderColor: ok ? c.success : c.border2,
         },
       ]}

@@ -12,8 +12,9 @@ import {
   View,
 } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
-import { useStaffAccess } from '../../../src/features/admin';
+import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
 import { confirmAction } from '../../../src/lib/confirm';
+import { friendlyDbError } from '../../../src/lib/friendlyDbError';
 import { supabase } from '../../../src/lib/supabase';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
@@ -48,6 +49,8 @@ export default function ConductorFormScreen() {
   const [active, setActive] = useState(true);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const canWrite = canManageOrg(access);
 
   const mounted = useRef(true);
   useEffect(() => {
@@ -68,7 +71,12 @@ export default function ConductorFormScreen() {
       .single()
       .then(({ data, error }) => {
         if (!mounted.current) return;
-        if (error || !data) { router.back(); return; }
+        if (error || !data) {
+          // Antes: router.back() silencioso — o usuário nunca sabia o porquê.
+          setLoadError(error ? friendlyDbError(error.message) : 'Condutor não encontrado.');
+          setPageState('ready');
+          return;
+        }
         setName(data.name as string);
         setBio((data.bio as string | null) ?? '');
         setSavedAvatarUrl((data.avatar_url as string | null) ?? null);
@@ -210,7 +218,7 @@ export default function ConductorFormScreen() {
       if (mounted.current) router.back();
     } catch (e) {
       if (!mounted.current) return;
-      setSaveError(e instanceof Error ? e.message : 'Erro ao salvar.');
+      setSaveError(e instanceof Error ? friendlyDbError(e.message) : 'Erro ao salvar.');
       setPageState('ready');
     }
   }
@@ -236,7 +244,7 @@ export default function ConductorFormScreen() {
       .eq('id', id as string);
 
     if (!mounted.current) return;
-    if (error) { setSaveError(error.message); setPageState('ready'); return; }
+    if (error) { setSaveError(friendlyDbError(error.message)); setPageState('ready'); return; }
     router.back();
   }
 
@@ -244,6 +252,20 @@ export default function ConductorFormScreen() {
     return (
       <Screen centered>
         <ActivityIndicator color={c.forest} />
+      </Screen>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Screen>
+        <Text style={[styles.title, { color: c.text, fontFamily: fontFamily.serif }]}>
+          Não foi possível abrir
+        </Text>
+        <Text style={[styles.saveError, { color: c.error, fontFamily: fontFamily.sans }]}>
+          {loadError}
+        </Text>
+        <Button label="← Voltar" variant="secondary" onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -276,7 +298,7 @@ export default function ConductorFormScreen() {
           autoCapitalize="words"
           autoCorrect={false}
           error={nameError ?? undefined}
-          editable={!isSaving}
+          editable={!isSaving && canWrite}
         />
 
         <TextField
@@ -287,7 +309,7 @@ export default function ConductorFormScreen() {
           multiline
           numberOfLines={4}
           style={styles.bioInput}
-          editable={!isSaving}
+          editable={!isSaving && canWrite}
         />
 
         {/* Picker de avatar */}
@@ -322,7 +344,7 @@ export default function ConductorFormScreen() {
             <View style={styles.avatarActions}>
               <Pressable
                 onPress={pickImage}
-                disabled={isSaving}
+                disabled={isSaving || !canWrite}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.pickButton,
@@ -341,7 +363,7 @@ export default function ConductorFormScreen() {
               {displayedImage ? (
                 <Pressable
                   onPress={removeImage}
-                  disabled={isSaving}
+                  disabled={isSaving || !canWrite}
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.removeButton,
@@ -364,15 +386,25 @@ export default function ConductorFormScreen() {
         </Text>
       ) : null}
 
-      <Button
-        label="Salvar"
-        onPress={handleSave}
-        loading={isSaving}
-        disabled={isSaving}
-        style={styles.saveButton}
-      />
+      {/* A RLS só permite escrita a org_admin (v06) — para os demais papéis o
+          formulário vira leitura, em vez de estourar erro cru ao salvar. */}
+      {!canWrite && (
+        <Text style={[styles.saveError, { color: c.text3, fontFamily: fontFamily.sans }]}>
+          Somente administradores do espaço podem editar condutores.
+        </Text>
+      )}
 
-      {!isNew && (
+      {canWrite && (
+        <Button
+          label="Salvar"
+          onPress={handleSave}
+          loading={isSaving}
+          disabled={isSaving}
+          style={styles.saveButton}
+        />
+      )}
+
+      {!isNew && canWrite && (
         <Pressable
           onPress={handleToggleActive}
           accessibilityRole="button"

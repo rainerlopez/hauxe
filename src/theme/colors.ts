@@ -19,7 +19,9 @@ export const palette = {
   focusRing:   'rgba(198,138,46,0.40)',
 
   // Semântica
-  success: '#2F7D5B',
+  success:      '#2F7D5B',
+  successSoft:  'rgba(47,125,91,0.10)',
+  successSoftD: 'rgba(47,125,91,0.18)',
   error:   '#C0392B',
 
   // Areia (fundo claro)
@@ -59,6 +61,7 @@ export const colors = {
     accentSoft:  palette.accentSoft,
     focusRing:   palette.focusRing,
     success:     palette.success,
+    successSoft: palette.successSoft,
     error:       palette.error,
     border:      'rgba(28,38,32,0.13)',
     border2:     'rgba(28,38,32,0.07)',
@@ -80,6 +83,7 @@ export const colors = {
     accentSoft:  palette.accentSoftD,
     focusRing:   'rgba(198,138,46,0.45)',
     success:     palette.success,
+    successSoft: palette.successSoftD,
     error:       '#E57373',
     border:      'rgba(234,240,234,0.14)',
     border2:     'rgba(234,240,234,0.08)',

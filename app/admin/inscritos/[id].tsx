@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, Screen } from '../../../src/components';
 import { useAnamneseFor } from '../../../src/features/admin/useAnamneseFor';
+import { confirmAction } from '../../../src/lib/confirm';
+import { friendlyDbError } from '../../../src/lib/friendlyDbError';
 import { supabase } from '../../../src/lib/supabase';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, spacing } from '../../../src/theme/spacing';
@@ -95,6 +97,12 @@ export default function InscritoDetailScreen() {
 
   async function handleCheckIn() {
     if (!reg) return;
+    const confirmed = await confirmAction({
+      title: 'Confirmar check-in?',
+      message: `${reg.full_name ?? 'Participante'} será marcado como presente na cerimônia.`,
+      confirmLabel: 'Fazer check-in',
+    });
+    if (!confirmed) return;
     setChecking(true);
     setError(null);
     const { error: err } = await supabase
@@ -103,10 +111,47 @@ export default function InscritoDetailScreen() {
       .eq('id', reg.id);
     setChecking(false);
     if (err) {
-      setError(err.message);
+      setError(friendlyDbError(err.message));
       return;
     }
     setReg({ ...reg, status: 'check_in' });
+  }
+
+  // Desfaz um check-in feito por engano. O status de volta é derivado do
+  // progresso real (view registration_progress): ficha+PIX ok → 'confirmada',
+  // senão → 'reservada' — mesmo critério do refresh_registration_status.
+  async function handleUndoCheckIn() {
+    if (!reg) return;
+    const confirmed = await confirmAction({
+      title: 'Desfazer check-in?',
+      message: `${reg.full_name ?? 'Participante'} voltará ao status anterior ao check-in.`,
+      confirmLabel: 'Desfazer',
+      destructive: true,
+    });
+    if (!confirmed) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const { data: prog, error: progErr } = await supabase
+        .from('registration_progress')
+        .select('ficha_ok, pagamento_ok')
+        .eq('registration_id', reg.id)
+        .maybeSingle();
+      if (progErr) throw new Error(progErr.message);
+
+      const target = prog?.ficha_ok && prog?.pagamento_ok ? 'confirmada' : 'reservada';
+      const { error: err } = await supabase
+        .from('registrations')
+        .update({ status: target })
+        .eq('id', reg.id);
+      if (err) throw new Error(err.message);
+
+      setReg({ ...reg, status: target });
+    } catch (e) {
+      setError(e instanceof Error ? friendlyDbError(e.message) : 'Erro ao desfazer check-in.');
+    } finally {
+      setChecking(false);
+    }
   }
 
   if (loading) {
@@ -218,6 +263,15 @@ export default function InscritoDetailScreen() {
 
       {CHECKINABLE.includes(reg.status) && (
         <Button label="Fazer check-in" loading={checking} onPress={handleCheckIn} />
+      )}
+
+      {reg.status === 'check_in' && (
+        <Button
+          label="Desfazer check-in"
+          variant="secondary"
+          loading={checking}
+          onPress={handleUndoCheckIn}
+        />
       )}
 
       <Button label="← Voltar aos inscritos" variant="ghost" onPress={() => router.back()} />

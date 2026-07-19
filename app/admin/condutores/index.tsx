@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../../src/components';
-import { useStaffAccess } from '../../../src/features/admin';
+import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
 import { useConductors, type Conductor } from '../../../src/features/admin/useConductors';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
@@ -97,6 +97,9 @@ export default function ConductoresListScreen() {
   const router = useRouter();
   const access = useStaffAccess();
   const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
+  // A RLS exige org_admin para escrever em conductors (v06); escondemos a UI
+  // de escrita para os demais papéis em vez de deixar o erro cru estourar.
+  const canWrite = canManageOrg(access);
   const state = useConductors(orgId);
   const [filter, setFilter] = useState<Filter>('todos');
 
@@ -182,7 +185,7 @@ export default function ConductoresListScreen() {
               ? 'Sem condutores ativos no momento.'
               : 'Sem condutores inativos.'}
           </Text>
-          {filter === 'todos' && (
+          {filter === 'todos' && canWrite && (
             <Pressable
               onPress={() => router.push('/admin/condutores/novo' as never)}
               accessibilityRole="button"
@@ -211,8 +214,8 @@ export default function ConductoresListScreen() {
         </View>
       )}
 
-      {/* Botão primário — sempre visível quando pronto */}
-      {state.status === 'ready' && filtered.length > 0 && (
+      {/* Botão primário — visível quando pronto e o papel permite escrita */}
+      {state.status === 'ready' && filtered.length > 0 && canWrite && (
         <Pressable
           onPress={() => router.push('/admin/condutores/novo' as never)}
           accessibilityRole="button"
