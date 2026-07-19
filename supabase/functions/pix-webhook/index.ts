@@ -5,38 +5,55 @@
 // inscrição e a promove para 'confirmada' (se a ficha também estiver ok).
 //
 // Esta função é PÚBLICA (sem JWT de usuário) — configurar verify_jwt=false.
-// A autenticidade é garantida pela verificação de assinatura do provedor.
+// Autenticidade (Asaas): o painel de webhooks do Asaas envia o header
+// `asaas-access-token` com o "Token de autenticação" configurado lá.
+// Configure o MESMO valor em PIX_WEBHOOK_SECRET. Comparação constant-time.
+// (Compat: o header `x-webhook-signature` também é aceito, p/ testes manuais.)
+//
+// FAIL-CLOSED (v13/D8): sem PIX_WEBHOOK_SECRET configurada a função rejeita
+// tudo — um webhook público que aceita qualquer payload seria o mesmo furo
+// da simulate_payment que removemos. No modo mock, confirme pagamentos via
+// SQL privilegiado (ver supabase/functions/README.md).
 //
 // Deploy:
 //   supabase functions deploy pix-webhook --no-verify-jwt
 //   supabase secrets set PIX_WEBHOOK_SECRET=...
-//   → registrar a URL pública no painel do provedor (Asaas/MercadoPago).
+//   → Asaas: Menu → Integrações → Webhooks → URL desta função +
+//     "Token de autenticação" = PIX_WEBHOOK_SECRET + eventos de cobrança.
 // =====================================================================
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// TODO: verificar assinatura HMAC/token do provedor (header específico).
-// Rejeita com 401 se inválido. Sem isso, qualquer um poderia confirmar pagamentos.
-// FAIL-CLOSED (v13/D8): sem PIX_WEBHOOK_SECRET configurada a função rejeita
-// tudo — um webhook público que aceita qualquer payload seria o mesmo furo
-// da simulate_payment que removemos. No modo mock, confirme pagamentos via
-// SQL privilegiado (ver supabase/functions/README.md).
+// Comparação constant-time (evita timing attack na igualdade do token).
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 function isValidSignature(req: Request): boolean {
   const secret = Deno.env.get('PIX_WEBHOOK_SECRET');
-  if (!secret) return false;
-  const provided = req.headers.get('x-webhook-signature') ?? '';
-  // TODO: comparar com HMAC do corpo. Placeholder de igualdade simples.
-  return provided === secret;
+  if (!secret) return false; // fail-closed
+  const provided =
+    req.headers.get('asaas-access-token') ??
+    req.headers.get('x-webhook-signature') ??
+    '';
+  return timingSafeEqual(provided, secret);
 }
 
 // Mapeia o status do provedor para o nosso enum payment_status.
+// Asaas: PENDING, RECEIVED, CONFIRMED, OVERDUE, REFUNDED, ...
 function mapStatus(providerStatus: string): 'pago' | 'pendente' | 'estornado' | 'expirado' | null {
   const s = providerStatus.toUpperCase();
-  if (['RECEIVED', 'CONFIRMED', 'PAID', 'APPROVED'].includes(s)) return 'pago';
-  if (['REFUNDED', 'CHARGEBACK'].includes(s)) return 'estornado';
+  if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'PAID', 'APPROVED'].includes(s)) return 'pago';
+  if (['REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK', 'CHARGEBACK_REQUESTED'].includes(s)) return 'estornado';
   if (['EXPIRED', 'OVERDUE'].includes(s)) return 'expirado';
-  if (['PENDING', 'AWAITING_PAYMENT'].includes(s)) return 'pendente';
+  if (['PENDING', 'AWAITING_PAYMENT', 'AWAITING_RISK_ANALYSIS'].includes(s)) return 'pendente';
   return null;
 }
 
@@ -51,8 +68,8 @@ serve(async (req) => {
   try {
     const payload = await req.json();
 
-    // TODO: extrair conforme o formato do provedor escolhido.
-    // Asaas: payload.payment.{ externalReference | id, status }
+    // Asaas: { event: 'PAYMENT_RECEIVED', payment: { id, status, ... } }.
+    // Fallbacks genéricos mantidos para testes manuais.
     const txid: string | undefined =
       payload?.payment?.id ?? payload?.txid ?? payload?.provider_txid;
     const providerStatus: string | undefined =
