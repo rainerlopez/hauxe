@@ -5,26 +5,34 @@
 
 ---
 
-## 0. ACHADO CRÍTICO — banco de produção está VAZIO
+## 0. Verificação ao vivo do Supabase + RETIFICAÇÃO
 
-Verificação ao vivo via MCP no projeto `hauxe` (`xgjnsyffibdahymaropx`, sa-east-1, Postgres 17.6, org gerenciada via Vercel, criado 2026-06-01):
+> **Retificação:** versão anterior deste relatório afirmou "banco de produção vazio". FALSO ALARME — o projeto estava em restauração (pause do free tier; painel mostrou "Restoration complete" às 10:34). Leituras feitas durante o boot retornaram schemas vazios. Releitura pós-restore confirma banco ÍNTEGRO.
 
-- `public`: **0 tabelas, 0 funções, 0 triggers** (deveria ter 13 tabelas, 25+ policies)
-- `auth.users`: **0 usuários**
-- `storage.buckets`: **relação não existe** (schema storage presente mas sem objetos)
-- `supabase_migrations.schema_migrations`: **não existe** — contradiz docs que citam migrations 20260705154527 (v12) e 20260705160233 (v11)
-- Edge Functions: **create-pix-charge e pix-webhook EXISTEM**, ACTIVE, v1, deploy ~06/07/2026 — prova que é o projeto certo (ref também bate com a PGURI de `docs/test-round-fase-2-3.md:102`)
-- Status do projeto no momento da checagem: `COMING_UP` (estava pausado; acordou com as chamadas)
+**Estado real do projeto `hauxe` (`xgjnsyffibdahymaropx`, sa-east-1, Postgres 17.6):**
+- 13 tabelas + view `registration_progress`, 39 policies (28 public + 11 storage), 2 buckets, 0 policies órfãs da v03
+- Dados: 1 org, 1 cerimônia, 1 inscrição, 1 anamnese, 2 usuários
+- 20 migrations registradas em `supabase_migrations` — cadeia v01→v13
+- Edge Functions ACTIVE: `create-pix-charge` (verify_jwt on), `pix-webhook` (verify_jwt off), deploy 06/07
+- v11 (fix capacidade) e v12 (CPF) confirmadas aplicadas
 
-**Interpretação:** o Postgres foi resetado/perdido em algum momento após 06/07/2026 (deploy das functions) — possivelmente pause prolongado do free tier/marketplace ou reset manual. Edge Functions sobreviveram por serem armazenadas fora do Postgres.
+**ACHADO PRINCIPAL — `main` está DEFASADA; trabalho de 06/07 vive em branch não mergeado:**
 
-**Consequências:**
-1. Todo o §1-§5 abaixo descreve o código do repo; nada disso está aplicado no banco hoje.
-2. O drift (§ riscos, item 3) virou **perda real**: `simulate_payment` e `snapshot_anamnese_revision`/`trg_anamnese_revision` só existiam em produção e não estão no git — irrecuperáveis salvo backup.
-3. Reconstrução necessária: `db/hauxe_schema.sql` + v02–v12 + storage buckets + policies. Usuários/dados: perdidos (0 auth.users).
-4. Lado bom: repo tem cadeia completa v01–v12 testada (33 casos) — reconstrução do schema é determinística.
+Branch `claude/supabase-user-cpf-update-rlk691` (5 commits à frente da `main`, +1998/−221 linhas) contém:
+1. `db/hauxe_schema_patch_v13_security_hardening.sql` — **APLICADA em produção** (migration 20260706190730). Fecha: **C2** (trigger `trg_registration_write_guard`: dono só cancela/reinscreve/edita brings_food/notes/tier não-pago; `ceremony_id` imutável), **M1** (staff-read de anamnese só inscrições ativas), **M6** (avatar só org_admin), **M2** (RPC `log_anamnese_view` grava `audit_log` — trilha LGPD), **A5** (ceremony-images sem leitura pública), **D8** (DROP `simulate_payment`), M3, e deprecia colunas v10.
+2. **Fluxo de inscrição do participante** (`useAvailableCeremonies`, `useEnroll`, `(app)/cerimonia/[id].tsx`) — fecha o gap "nenhum INSERT em registrations".
+3. **Console da Kao Fase 2** (`admin/inscritos/` — lista, ficha, check-in).
+4. Remoção do código morto `app/(admin)/` + CLAUDE.md atualizado.
+5. **CI GitHub Actions** (`.github/workflows/ci.yml` — typecheck + expo export web).
+6. Webhook PIX **fail-closed** + suíte de testes ampliada (caso 08, guard de escrita).
+7. `PROGRESSO.md` com decisões D1–D9 e "e2e 11/11 contra produção".
 
-**Limitação anterior (superada):** primeira versão deste relatório inferia produção de docs + migrations.
+**Consequência:** a maioria dos gaps dos §§1–5 abaixo (analisados sobre a `main`) já está resolvida nesse branch. **Ação nº 1 do projeto: revisar e mergear `claude/supabase-user-cpf-update-rlk691` na `main`.** Produção já roda o schema v13 correspondente.
+
+**Divergências residuais confirmadas ao vivo:**
+- `simulate_payment` NÃO existe mais em produção (dropada pela v13) — docs/CLAUDE.md da `main` desatualizados.
+- `snapshot_anamnese_revision`/`trg_anamnese_revision` existem em produção (migrations 20260603173303) mas o SQL não está versionado em `db/` de NENHUM branch — único drift real remanescente (recuperável: conteúdo está em `supabase_migrations.schema_migrations`).
+- Advisors de segurança: 10 WARNs — 9 são helpers SECURITY DEFINER expostos (maioria intencional/documentada; `log_anamnese_view` é por design) + **"Leaked Password Protection Disabled"**: relevante pois senha = CPF (11 dígitos numéricos); avaliar habilitar/estratégia.
 
 ---
 
@@ -112,11 +120,14 @@ Verificação ao vivo via MCP no projeto `hauxe` (`xgjnsyffibdahymaropx`, sa-eas
 
 ---
 
-## 5. Sugestão de ordem de ataque
+## 5. Sugestão de ordem de ataque (REVISADA pós-verificação ao vivo)
 
-1. Fix C2 (após decisão de produto) + versionar funções de produção → fecha drift.
-2. Implementar fluxo de inscrição (lista de cerimônias publicadas → INSERT `registrations`) + cerimônia dinâmica no sign-up.
-3. Console Fase 2 (inscritos + fichas) — já previsto.
-4. Integração PIX real (Asaas/MP) com HMAC + validação de valor server-side (resolve A3 junto).
-5. Limpeza: deletar `app/(admin)/`, decidir sobre `motion.ts`/reanimated, atualizar CLAUDE.md.
-6. CI (typecheck + lint + suíte SQL em Postgres de serviço).
+Itens 1, 2, 3, 5 e 6 da lista original **já estão prontos** no branch `claude/supabase-user-cpf-update-rlk691` (v13 aplicada em produção). Ordem atual:
+
+1. **Mergear `claude/supabase-user-cpf-update-rlk691` → `main`** (revisar PR; é o passo que sincroniza repo com produção).
+2. Versionar `snapshot_anamnese_revision`/`trg_anamnese_revision` em `db/` (conteúdo recuperável de `supabase_migrations`).
+3. Integração PIX real (Asaas/MP): HMAC no webhook + validação de valor server-side (A3) + secrets + URL.
+4. Cerimônia hardcoded no sign-up → dinâmica (verificar se o branch novo já cobre).
+5. Avaliar "Leaked Password Protection" (senha = CPF) + migração de usuários pré-senha.
+6. LGPD produção: criptografia de campos sensíveis (pgsodium/Vault) — ainda pendente em todos os branches.
+7. Menores: `motion.ts` sem uso, alias `@/*`, distinção erro×sem-inscrição no hub.
