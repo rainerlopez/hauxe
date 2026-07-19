@@ -1,7 +1,30 @@
 # Relatório de análise — estado real do projeto Hauxe
 
 **Data:** 2026-07-19 · **Base:** leitura direta do código na `main` (commit `2377d7b`, pós-merge PR #10) + docs `weekend/` e `ENTREGA-user-auth.md`.
-**Limitação:** MCP Supabase não autenticado nesta sessão — banco remoto NÃO verificado ao vivo. Estado de produção inferido de docs + migrations.
+**Atualização (mesma data, conector Supabase autorizado):** banco remoto VERIFICADO ao vivo — ver §0.
+
+---
+
+## 0. ACHADO CRÍTICO — banco de produção está VAZIO
+
+Verificação ao vivo via MCP no projeto `hauxe` (`xgjnsyffibdahymaropx`, sa-east-1, Postgres 17.6, org gerenciada via Vercel, criado 2026-06-01):
+
+- `public`: **0 tabelas, 0 funções, 0 triggers** (deveria ter 13 tabelas, 25+ policies)
+- `auth.users`: **0 usuários**
+- `storage.buckets`: **relação não existe** (schema storage presente mas sem objetos)
+- `supabase_migrations.schema_migrations`: **não existe** — contradiz docs que citam migrations 20260705154527 (v12) e 20260705160233 (v11)
+- Edge Functions: **create-pix-charge e pix-webhook EXISTEM**, ACTIVE, v1, deploy ~06/07/2026 — prova que é o projeto certo (ref também bate com a PGURI de `docs/test-round-fase-2-3.md:102`)
+- Status do projeto no momento da checagem: `COMING_UP` (estava pausado; acordou com as chamadas)
+
+**Interpretação:** o Postgres foi resetado/perdido em algum momento após 06/07/2026 (deploy das functions) — possivelmente pause prolongado do free tier/marketplace ou reset manual. Edge Functions sobreviveram por serem armazenadas fora do Postgres.
+
+**Consequências:**
+1. Todo o §1-§5 abaixo descreve o código do repo; nada disso está aplicado no banco hoje.
+2. O drift (§ riscos, item 3) virou **perda real**: `simulate_payment` e `snapshot_anamnese_revision`/`trg_anamnese_revision` só existiam em produção e não estão no git — irrecuperáveis salvo backup.
+3. Reconstrução necessária: `db/hauxe_schema.sql` + v02–v12 + storage buckets + policies. Usuários/dados: perdidos (0 auth.users).
+4. Lado bom: repo tem cadeia completa v01–v12 testada (33 casos) — reconstrução do schema é determinística.
+
+**Limitação anterior (superada):** primeira versão deste relatório inferia produção de docs + migrations.
 
 ---
 
