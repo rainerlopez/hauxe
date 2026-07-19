@@ -10,7 +10,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 ## Stack
 - **Frontend:** Expo SDK 56 + Expo Router + TypeScript (iOS/Android/Web PWA-first)
 - **Backend:** Supabase (projeto "hauxe", região sa-east-1) — usar MCP tools (mcp__supabase__*)
-- **Pagamentos:** PIX via Asaas/MercadoPago (Edge Function planejada)
+- **Pagamentos:** PIX via Asaas (Edge Functions integradas; sandbox validado fim-a-fim em 19/07)
 - **Auth:** Supabase Auth com trigger on_auth_user_created
 - **Gerenciador:** pnpm com node-linker=hoisted
 - **Node:** v22.13.1 LTS (ver .nvmrc)
@@ -47,7 +47,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - Fontes Schibsted Grotesk + Fraunces JÁ carregadas via useFonts no app/_layout.tsx (splash segura até carregar)
 - src/components/ — Screen, Button, TextField, Checkbox, RadioGroup
 - src/features/auth, registration (useRegistration, useAvailableCeremonies, useEnroll), anamnese (useAnamnese), payment (useContributionTiers, usePayment), admin (useStaffAccess, useConductors, useOrgRegistrations, useAnamneseFor) — todos implementados
-- supabase/functions/ — create-pix-charge e pix-webhook DEPLOYADAS em produção (06/07, modo mock; webhook fail-closed sem PIX_WEBHOOK_SECRET). Integração real Asaas/MercadoPago marcada como TODO (ver supabase/functions/README.md)
+- supabase/functions/ — create-pix-charge e pix-webhook com integração REAL do Asaas (19/07): PIX_PROVIDER=asaas ativa cliente-por-CPF + cobrança PIX + QR; sem a env, modo mock. Webhook valida asaas-access-token (constant-time), fail-closed. A3 fechado (valor derivado do tier no servidor + tier validado contra a cerimônia). Secrets SANDBOX configurados no projeto; fim-a-fim validado 19/07 (cobrança sandbox → pagamento simulado → webhook → payments.pago via trigger). Produção: trocar ASAAS_API_KEY/ASAAS_BASE_URL p/ produção + recriar webhook no painel Asaas de produção (ver supabase/functions/README.md)
 - .env.example com EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY — .env real necessário
 
 ## Design tokens
@@ -68,7 +68,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 
 ## Próximos passos previstos
 > Andamento detalhado + decisões D1–D9 em **PROGRESSO.md** (fonte da verdade da etapa atual)
-- Integração real do provedor PIX (Asaas/MercadoPago) nos TODOs das Edge Functions + secrets + URL do webhook no provedor — **depende de credenciais (Bruno)**
+- Virada do PIX sandbox → produção: chave de API + webhook no painel Asaas de PRODUÇÃO, atualizar secrets (ASAAS_API_KEY, ASAAS_BASE_URL=https://api.asaas.com/v3), rotacionar PIX_WEBHOOK_SECRET — **depende de conta Asaas de produção (Bruno)**
 - Ações de painel que só o Rainer pode fazer: repo privado, template "Confirm signup" com {{ .Token }}, decidir desligar OTP/magic link, CPF do 2º usuário (lista completa em PROGRESSO.md)
 - Testar fim-a-fim no device: inscrição → ficha → PIX → confirmação; teste visual do console
 - Criação/edição de cerimônia no console (Fase 3b) — hoje cerimônia e tiers nascem via SQL
