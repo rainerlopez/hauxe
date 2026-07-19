@@ -22,7 +22,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - Triggers de automação: trg_payment_status_sync e trg_anamnese_status_sync promovem inscrições para 'confirmada'
 - **v13 (guard de escrita, fecha o C2)**: trg_registration_write_guard — participante só cancela/reinscreve (cancelada→reservada), edita brings_food/notes e troca tier enquanto não pago; ceremony_id imutável p/ atores com JWT (trocar = cancelar+reinscrever); staff/service_role livres; sync interno passa via pg_trigger_depth()>1
 - Trigger on_auth_user_created cria profile automaticamente; desde v12 grava profiles.cpf (11 dígitos, dos metadados do signUp)
-- Trigger trg_anamnese_revision (AFTER UPDATE) → snapshot_anamnese_revision() SECURITY DEFINER → anamnese_revisions
+- Trigger trg_anamnese_revision (AFTER UPDATE) → snapshot_anamnese_revision() SECURITY DEFINER → anamnese_revisions — versionado em db/hauxe_schema_patch_v03b_anamnese_revision.sql (resgatado de produção em 2026-07-19; era o último objeto sem SQL no repo)
 - RPC log_anamnese_view(profile_id) SECURITY DEFINER — trilha LGPD em audit_log; o console SEMPRE chama antes de ler ficha
 - simulate_payment REMOVIDA na v13 (era furo: participante se auto-pagava). Confirmação mock só via SQL privilegiado (ver supabase/functions/README.md)
 - LGPD (v13): staff-read de anamnese (tabela + storage) limitado a inscrições com status <> 'cancelada'
