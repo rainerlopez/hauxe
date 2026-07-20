@@ -71,7 +71,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - Virada do PIX sandbox → produção: chave de API + webhook no painel Asaas de PRODUÇÃO, atualizar secrets (ASAAS_API_KEY, ASAAS_BASE_URL=https://api.asaas.com/v3), rotacionar PIX_WEBHOOK_SECRET — **depende de conta Asaas de produção (Bruno)**
 - Ações de painel que só o Rainer pode fazer: repo privado, template "Confirm signup" com {{ .Token }}, decidir desligar OTP/magic link, CPF do 2º usuário (lista completa em PROGRESSO.md)
 - Testar fim-a-fim no device: inscrição → ficha → PIX → confirmação; teste visual do console
-- Criação/edição de cerimônia no console (Fase 3b) — hoje cerimônia e tiers nascem via SQL
+- ~~Criação/edição de cerimônia no console (Fase 3b)~~ FEITO 19/07: /admin/cerimonias (lista + form criar/editar com tiers e vínculo de condutores, gated por org_admin). Testar visualmente no device
 - Render de QR Code: hoje usa imagem do provedor; avaliar geração no cliente se necessário
 - LGPD: cifrar campos sensíveis de anamnese (pgsodium/Vault) em produção
 - CI (GitHub Actions)

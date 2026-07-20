@@ -6,6 +6,9 @@ export { useConductors } from './useConductors';
 export type { Conductor } from './useConductors';
 
 export { useOrgRegistrations } from './useOrgRegistrations';
-export type { OrgCeremony, OrgRegistration } from './useOrgRegistrations';
+export type { OrgRegistration } from './useOrgRegistrations';
 
 export { useAnamneseFor } from './useAnamneseFor';
+
+export { useOrgCeremonies } from './useOrgCeremonies';
+export type { OrgCeremony as OrgCeremonyListItem, CeremonyStatus } from './useOrgCeremonies';
