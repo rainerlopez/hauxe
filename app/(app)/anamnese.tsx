@@ -1,7 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Checkbox, RadioGroup, Screen, TextField } from '../../src/components';
 import {
@@ -81,6 +81,9 @@ export default function AnamneseScreen() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  // Guarda síncrona contra duplo-toque: attachments.busy só vira true depois
+  // do picker/manipulate, deixando uma janela p/ dois picks concorrentes.
+  const pickingRef = useRef(false);
 
   // Preenche o formulário quando a ficha existente carrega.
   useEffect(() => {
@@ -113,8 +116,17 @@ export default function AnamneseScreen() {
   // ── anexos (receita, exame...) — upload imediato, fora do fluxo de salvar ──
 
   async function pickAttachment() {
+    if (pickingRef.current) return;
+    pickingRef.current = true;
     setAttachmentError(null);
+    try {
+      await runPickAttachment();
+    } finally {
+      pickingRef.current = false;
+    }
+  }
 
+  async function runPickAttachment() {
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {

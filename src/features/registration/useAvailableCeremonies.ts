@@ -80,6 +80,8 @@ export function useAvailableCeremonies(): State & { retry: () => void } {
       return () => {
         cancelled = true;
       };
+      // nonce não é lido no corpo; entra nas deps só para o retry() re-disparar.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, nonce]),
   );
 

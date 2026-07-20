@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 
 export type CeremonyStatus = 'rascunho' | 'publicada' | 'encerrada' | 'cancelada';
@@ -98,7 +99,7 @@ export function useOrgCeremonies(orgId: string | null): State {
         if (cancelled) return;
 
         if (plain.error) {
-          setState({ status: 'error', message: plain.error.message });
+          setState({ status: 'error', message: friendlyDbError(plain.error.message) });
           return;
         }
 

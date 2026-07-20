@@ -21,14 +21,6 @@ export type StaffAccess =
   | { status: 'error'; message: string }       // falha na consulta (rede etc.) — NÃO é negação
   | { status: 'staff'; orgs: StaffOrg[] };     // staff de ≥1 org
 
-/** true quando o papel na org permite gerir o espaço (escritas de admin). */
-export function canManageOrg(access: StaffAccess): boolean {
-  return (
-    access.status === 'staff' &&
-    (access.orgs[0].role === 'org_admin' || access.orgs[0].role === 'super_admin')
-  );
-}
-
 /**
  * Descobre de quais orgs o usuário logado é STAFF.
  *

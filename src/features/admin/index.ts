@@ -1,5 +1,5 @@
 // Feature: console administrativo da Kao (staff/admin de org)
-export { useStaffAccess, canManageOrg } from './useStaffAccess';
+export { useStaffAccess } from './useStaffAccess';
 export type { StaffAccess, StaffOrg, StaffRole } from './useStaffAccess';
 
 export { AdminOrgProvider, useAdminOrg, canManageActiveOrg } from './OrgContext';

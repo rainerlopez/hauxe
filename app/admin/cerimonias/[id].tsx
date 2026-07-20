@@ -67,11 +67,25 @@ function partsToIso(date: string, time: string): string | null {
   return d.toISOString();
 }
 
-/** "120", "120,50", "120.50" → número em reais. null = inválido. */
+/**
+ * "120", "120,50", "1.200,50" e também "120.50" (ponto decimal) → reais.
+ * Regra: se houver vírgula, ela é o separador decimal e pontos são milhar.
+ * Sem vírgula, um único ponto seguido de 1–2 dígitos é tratado como decimal
+ * (evita que "120.50" vire 12050 — cobrança 100x maior); pontos de milhar
+ * (grupos de 3) são removidos. null = inválido.
+ */
 function parseAmount(text: string): number | null {
-  const t = text.trim().replace(/\./g, '').replace(',', '.');
-  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
-  const n = Number(t);
+  const raw = text.trim();
+  let normalized: string;
+  if (raw.includes(',')) {
+    normalized = raw.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d+\.\d{1,2}$/.test(raw)) {
+    normalized = raw; // ponto como separador decimal (ex.: "120.50")
+  } else {
+    normalized = raw.replace(/\./g, ''); // pontos de milhar (ex.: "1.200")
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  const n = Number(normalized);
   return n > 0 ? n : null;
 }
 

@@ -23,6 +23,18 @@ interface RegDetail {
 
 const CHECKINABLE = ['reservada', 'pendente', 'aguardando_pagamento', 'confirmada'];
 
+// Mesmos rótulos PT-BR da lista de inscritos — evita mostrar o enum cru
+// (ex.: "aguardando_pagamento") no detalhe.
+const STATUS_LABEL: Record<string, string> = {
+  reservada: 'Reservada',
+  pendente: 'Pendente',
+  aguardando_pagamento: 'Aguardando PIX',
+  confirmada: 'Confirmada',
+  check_in: 'Check-in ✓',
+  cancelada: 'Cancelada',
+  lista_espera: 'Lista de espera',
+};
+
 function yesNo(v: boolean | null | undefined) {
   return v === true ? 'Sim' : v === false ? 'Não' : '—';
 }
@@ -196,7 +208,7 @@ export default function InscritoDetailScreen() {
       <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
         <Field label="E-mail" value={reg.email} />
         <Field label="Telefone" value={reg.phone} />
-        <Field label="Status da inscrição" value={reg.status} />
+        <Field label="Status da inscrição" value={STATUS_LABEL[reg.status] ?? reg.status} />
         <Field label="Leva alimento" value={yesNo(reg.brings_food)} />
         <Field label="Observações" value={reg.notes} />
       </View>

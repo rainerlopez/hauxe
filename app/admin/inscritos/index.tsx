@@ -57,7 +57,7 @@ function yesNo(v: boolean | null | undefined) {
 }
 
 function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
+  if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;

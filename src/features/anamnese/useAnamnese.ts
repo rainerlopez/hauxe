@@ -134,7 +134,10 @@ export function useAnamnese() {
 
 const ATTACHMENTS_BUCKET = 'anamnese-files';
 const ATTACHMENTS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-const SIGNED_URL_TTL_SECONDS = 60;
+// 1h cobre uma sessão de tela sem que as miniaturas expirem no meio (o antigo
+// 60s deixava <Image> quebrada se a pessoa lesse a ficha por >1min). O bucket
+// segue privado: signed URL de curta duração, gerada sob demanda a cada refresh.
+const SIGNED_URL_TTL_SECONDS = 3600;
 
 export interface AnamneseAttachment {
   /** Nome do arquivo dentro da pasta do usuário (ex.: 1721488000000.jpg). */
@@ -172,16 +175,22 @@ export function useAnamneseAttachments() {
         .list(user.id, { sortBy: { column: 'created_at', order: 'desc' } });
       if (error) throw error;
 
+      // storage.list pode devolver um placeholder de pasta vazia (id null) — ignora.
+      const files = (data ?? []).filter((f) => f.id);
+      const paths = files.map((f) => `${user.id}/${f.name}`);
+
       const items: AnamneseAttachment[] = [];
-      for (const file of data ?? []) {
-        // storage.list pode devolver um placeholder de pasta vazia (id null) — ignora.
-        if (!file.id) continue;
-        const path = `${user.id}/${file.name}`;
+      if (paths.length > 0) {
+        // Uma única ida à rede assina todos os anexos (evita N round-trips).
         const { data: signed, error: signErr } = await supabase.storage
           .from(ATTACHMENTS_BUCKET)
-          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-        if (signErr || !signed) continue;
-        items.push({ name: file.name, path, signedUrl: signed.signedUrl });
+          .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+        if (signErr) throw signErr;
+        (signed ?? []).forEach((s, i) => {
+          if (s.signedUrl && !s.error) {
+            items.push({ name: files[i].name, path: paths[i], signedUrl: s.signedUrl });
+          }
+        });
       }
       setState({ phase: 'ready', items });
     } catch (e) {
