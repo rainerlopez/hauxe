@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../../src/components';
-import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
+import { canManageActiveOrg, useAdminOrg } from '../../../src/features/admin';
 import { useConductors, type Conductor } from '../../../src/features/admin/useConductors';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
@@ -95,11 +95,11 @@ function ConductorRow({ conductor, onPress }: { conductor: Conductor; onPress: (
 export default function ConductoresListScreen() {
   const { c } = useTheme();
   const router = useRouter();
-  const access = useStaffAccess();
-  const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
+  const { org } = useAdminOrg();
+  const orgId = org.org_id;
   // A RLS exige org_admin para escrever em conductors (v06); escondemos a UI
   // de escrita para os demais papéis em vez de deixar o erro cru estourar.
-  const canWrite = canManageOrg(access);
+  const canWrite = canManageActiveOrg(org);
   const state = useConductors(orgId);
   const [filter, setFilter] = useState<Filter>('todos');
 

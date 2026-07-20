@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../../src/components';
-import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
+import { canManageActiveOrg, useAdminOrg } from '../../../src/features/admin';
 import {
   CEREMONY_STATUS_LABEL,
   useOrgCeremonies,
@@ -87,9 +87,9 @@ function CeremonyRow({ ceremony, onPress }: { ceremony: OrgCeremony; onPress: ()
 export default function CerimoniasListScreen() {
   const { c } = useTheme();
   const router = useRouter();
-  const access = useStaffAccess();
-  const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
-  const canWrite = canManageOrg(access);
+  const { org } = useAdminOrg();
+  const orgId = org.org_id;
+  const canWrite = canManageActiveOrg(org);
   const state = useOrgCeremonies(orgId);
 
   return (

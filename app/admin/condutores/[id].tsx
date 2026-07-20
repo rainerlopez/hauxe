@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
-import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
+import { canManageActiveOrg, useAdminOrg } from '../../../src/features/admin';
 import { confirmAction } from '../../../src/lib/confirm';
 import { friendlyDbError } from '../../../src/lib/friendlyDbError';
 import { supabase } from '../../../src/lib/supabase';
@@ -36,7 +36,7 @@ export default function ConductorFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { c } = useTheme();
-  const access = useStaffAccess();
+  const { org } = useAdminOrg();
   const isNew = id === 'novo';
 
   const [pageState, setPageState] = useState<PageState>(isNew ? 'ready' : 'loading');
@@ -50,7 +50,7 @@ export default function ConductorFormScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const canWrite = canManageOrg(access);
+  const canWrite = canManageActiveOrg(org);
 
   const mounted = useRef(true);
   useEffect(() => {
@@ -173,8 +173,7 @@ export default function ConductorFormScreen() {
     const trimmedName = name.trim();
     if (!trimmedName) { setNameError('Nome é obrigatório'); return; }
     setNameError(null);
-    if (access.status !== 'staff') return;
-    const orgId = access.orgs[0].org_id;
+    const orgId = org.org_id;
 
     setPageState('saving');
     setSaveError(null);
@@ -234,7 +233,6 @@ export default function ConductorFormScreen() {
       destructive: toDeactivate,
     });
     if (!confirmed) return;
-    if (access.status !== 'staff') return;
     setPageState('saving');
     setSaveError(null);
 

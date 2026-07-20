@@ -1,6 +1,6 @@
 import { Redirect, Stack, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useStaffAccess } from '../../src/features/admin';
+import { AdminOrgProvider, useStaffAccess } from '../../src/features/admin';
 import { useTheme } from '../../src/theme/useTheme';
 import { fontFamily, fontSize } from '../../src/theme/typography';
 import { spacing } from '../../src/theme/spacing';
@@ -59,5 +59,9 @@ export default function AdminLayout() {
     return <Redirect href="/" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <AdminOrgProvider orgs={access.orgs}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AdminOrgProvider>
+  );
 }

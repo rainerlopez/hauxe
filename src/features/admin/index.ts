@@ -2,6 +2,8 @@
 export { useStaffAccess, canManageOrg } from './useStaffAccess';
 export type { StaffAccess, StaffOrg, StaffRole } from './useStaffAccess';
 
+export { AdminOrgProvider, useAdminOrg, canManageActiveOrg } from './OrgContext';
+
 export { useConductors } from './useConductors';
 export type { Conductor } from './useConductors';
 

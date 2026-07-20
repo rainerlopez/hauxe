@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components';
 import { useAuth } from '../../src/features/auth';
-import { useStaffAccess, type StaffRole } from '../../src/features/admin';
+import { useAdminOrg, type StaffRole } from '../../src/features/admin';
 import { supabase } from '../../src/lib/supabase';
 import { useTheme } from '../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../src/theme/spacing';
@@ -16,7 +16,7 @@ const ROLE_LABEL: Record<StaffRole, string> = {
 };
 
 export default function AdminHomeScreen() {
-  const access = useStaffAccess();
+  const { org, orgs, select } = useAdminOrg();
   const { user } = useAuth();
   const { c } = useTheme();
   const router = useRouter();
@@ -39,9 +39,7 @@ export default function AdminHomeScreen() {
     };
   }, [user]);
 
-  if (access.status !== 'staff') return null; // guard do _layout cuida do resto
-
-  const primary = access.orgs[0];
+  const primary = org;
   const firstName = name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? '';
 
   return (
@@ -64,9 +62,39 @@ export default function AdminHomeScreen() {
       <View style={[styles.roleChip, { backgroundColor: c.accentSoft, borderColor: c.border2 }]}>
         <Text style={[styles.roleText, { color: c.accentDeep, fontFamily: fontFamily.sansSemi }]}>
           {ROLE_LABEL[primary.role]}
-          {access.orgs.length > 1 ? ` · ${access.orgs.length} espaços` : ''}
         </Text>
       </View>
+
+      {/* Seletor de espaço (só aparece com 2+ orgs) */}
+      {orgs.length > 1 && (
+        <View style={styles.orgRow}>
+          {orgs.map((o) => (
+            <Pressable
+              key={o.org_id}
+              onPress={() => select(o.org_id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: o.org_id === org.org_id }}
+              style={[
+                styles.orgChip,
+                { borderColor: o.org_id === org.org_id ? c.forest : c.border },
+                o.org_id === org.org_id && { backgroundColor: c.forest },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.orgChipText,
+                  {
+                    color: o.org_id === org.org_id ? c.onForest : c.text2,
+                    fontFamily: o.org_id === org.org_id ? fontFamily.sansMedium : fontFamily.sans,
+                  },
+                ]}
+              >
+                {o.org_name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Navegação do console */}
       <Pressable
@@ -198,6 +226,16 @@ const styles = StyleSheet.create({
     fontSize: fontSize.aux,
     letterSpacing: 0.3,
   },
+  orgRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing['2xl'] },
+  orgChip: {
+    minHeight: sizing.minTouch,
+    borderRadius: borderRadius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgChipText: { fontSize: fontSize.aux },
   navCard: {
     flexDirection: 'row',
     alignItems: 'center',

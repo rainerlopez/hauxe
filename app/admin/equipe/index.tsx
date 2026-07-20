@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../../src/components';
 import { useAuth } from '../../../src/features/auth';
-import { useStaffAccess, useOrgTeam, type OrgTeamMember, type StaffRole } from '../../../src/features/admin';
+import { useAdminOrg, useOrgTeam, type OrgTeamMember, type StaffRole } from '../../../src/features/admin';
 import { useTheme } from '../../../src/theme/useTheme';
 import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../../src/theme/typography';
@@ -74,9 +74,8 @@ function MemberRow({ member, isYou }: { member: OrgTeamMember; isYou: boolean })
 export default function EquipeListScreen() {
   const { c } = useTheme();
   const router = useRouter();
-  const access = useStaffAccess();
   const { user } = useAuth();
-  const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
+  const orgId = useAdminOrg().org.org_id;
   const state = useOrgTeam(orgId);
 
   return (

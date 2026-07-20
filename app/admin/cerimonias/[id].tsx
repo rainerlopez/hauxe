@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
-import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
+import { canManageActiveOrg, useAdminOrg } from '../../../src/features/admin';
 import {
   CEREMONY_STATUS_LABEL,
   type CeremonyStatus,
@@ -79,10 +79,10 @@ export default function CeremonyFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { c } = useTheme();
-  const access = useStaffAccess();
+  const { org } = useAdminOrg();
   const isNew = id === 'nova';
-  const canWrite = canManageOrg(access);
-  const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
+  const canWrite = canManageActiveOrg(org);
+  const orgId = org.org_id;
 
   const [pageState, setPageState] = useState<PageState>(isNew ? 'ready' : 'loading');
   const [loadError, setLoadError] = useState<string | null>(null);

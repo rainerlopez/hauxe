@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
-import { useStaffAccess } from '../../../src/features/admin';
+import { useAdminOrg } from '../../../src/features/admin';
 import {
   useOrgRegistrations,
   type OrgRegistration,
@@ -266,8 +266,7 @@ function RegistrationRow({ reg, onPress }: { reg: OrgRegistration; onPress: () =
 export default function InscritosScreen() {
   const { c } = useTheme();
   const router = useRouter();
-  const access = useStaffAccess();
-  const orgId = access.status === 'staff' ? access.orgs[0].org_id : null;
+  const orgId = useAdminOrg().org.org_id;
   const ceremoniesState = useOrgCeremonies(orgId);
 
   // null = comportamento padrão do hook ("próxima" cerimônia).
