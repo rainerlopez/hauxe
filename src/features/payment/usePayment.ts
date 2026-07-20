@@ -1,4 +1,6 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 
 export interface PaymentInfo {
@@ -60,7 +62,7 @@ export function usePayment(registrationId: string | null) {
     } catch (e) {
       setState({
         phase: 'error',
-        message: e instanceof Error ? e.message : 'Erro ao carregar o pagamento.',
+        message: e instanceof Error ? friendlyDbError(e.message) : 'Erro ao carregar o pagamento.',
       });
     }
   }, [registrationId]);
@@ -98,11 +100,21 @@ export function usePayment(registrationId: string | null) {
         const { error } = await supabase.functions.invoke('create-pix-charge', {
           body: { registration_id: registrationId, tier_id: tierId },
         });
-        if (error) return { error: error.message };
+        if (error) {
+          // Em respostas non-2xx o SDK lança FunctionsHttpError com message
+          // genérica em inglês; a mensagem amigável que a função devolve está
+          // no CORPO da resposta ({ error: '...' }) — ler de error.context.
+          if (error instanceof FunctionsHttpError) {
+            const body = await error.context.json().catch(() => null);
+            const msg = (body as { error?: string } | null)?.error;
+            return { error: msg ?? 'Não foi possível gerar o PIX. Tente novamente.' };
+          }
+          return { error: friendlyDbError(error.message) };
+        }
         await fetchPayment();
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : 'Erro ao gerar o PIX.' };
+        return { error: e instanceof Error ? friendlyDbError(e.message) : 'Erro ao gerar o PIX.' };
       } finally {
         setCreating(false);
       }

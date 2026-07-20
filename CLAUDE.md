@@ -15,7 +15,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - **Gerenciador:** pnpm com node-linker=hoisted
 - **Node:** v22.13.1 LTS (ver .nvmrc)
 
-## Estado do banco (2026-07-06)
+## Estado do banco (2026-07-19)
 - 13 tabelas com RLS ativado em todas: organizations, profiles, org_members, conductors, ceremonies, ceremony_conductors, ceremony_images, contribution_tiers, anamneses, anamnese_revisions, registrations, payments, audit_log
 - 5 enums: user_role (super_admin/org_admin/conductor/participant), ceremony_status, registration_status (inclui 'reservada'), payment_status, payment_method
 - View: registration_progress (SECURITY INVOKER) — calcula vaga_ok, ficha_ok, pagamento_ok
@@ -31,7 +31,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
 - Migrations versionadas: db/hauxe_schema.sql + patches v02–v13, TODAS aplicadas no projeto (v13 = endurecimento pós-auditoria, aplicada 06/07). Suíte de testes em db/tests (run_all.sql, 48 casos, 48/48 PASS) — rodar com mock weekend/sql/00_supabase_mock.sql em Postgres local
 - Security Advisor: WARNs residuais intencionais (helpers RLS SECURITY DEFINER, rls_auto_enable, log_anamnese_view, leaked-password OFF de propósito — CPF é a senha)
 
-## Estado do app (2026-07-06)
+## Estado do app (2026-07-19)
 - Build web validado (expo export -p web) com 0 erros; tsc --noEmit limpo
 - Fluxos implementados:
   - Auth completo: e-mail = login, CPF = senha (signInWithPassword/signUp; CPF normalizado p/ 11 dígitos, validação de dígitos verificadores em src/features/auth/cpf.ts). (auth)/sign-in, sign-up, check-email (confirmação de cadastro), verify (código 6 díg., type signup), callback (link de confirmação PKCE) + AuthContext/useAuth. Ver ENTREGA-user-auth.md
@@ -43,7 +43,7 @@ Fluxo assíncrono: vaga garantida na inscrição → ficha e pagamento são pend
   - Console app/admin/ (único — a duplicata (admin)/ foi removida em 06/07): dashboard, condutores (CRUD + avatar), **inscritos (novo 06/07)**: /admin/inscritos lista a próxima cerimônia com chips Ficha/PIX; /admin/inscritos/[id] mostra contato + ficha de saúde (log_anamnese_view SEMPRE antes — trilha LGPD) + check-in. Guard duplo (UX + RLS) via useStaffAccess
 - Rotas anamnese/contribuicao/cerimonia/[id] registradas no (app)/_layout com href:null (não viram aba)
 - src/lib/supabase.ts — cliente Supabase (PKCE, AsyncStorage, auto-refresh)
-- src/theme/ — tokens FINAIS do Claude Design (paleta v3 Modo A: oliva #29402B + âmbar #C68A2E + areia #F6F2E9, light/dark), typography, spacing (base 8px), motion
+- src/theme/ — tokens FINAIS do Claude Design (paleta v3 Modo A: oliva #29402B + âmbar #C68A2E + areia #F6F2E9, light/dark), typography, spacing (base 8px), motion (tokens definidos; NENHUMA animação implementada ainda — motion.ts sem imports)
 - Fontes Schibsted Grotesk + Fraunces JÁ carregadas via useFonts no app/_layout.tsx (splash segura até carregar)
 - src/components/ — Screen, Button, TextField, Checkbox, RadioGroup
 - src/features/auth, registration (useRegistration, useAvailableCeremonies, useEnroll), anamnese (useAnamnese), payment (useContributionTiers, usePayment), admin (useStaffAccess, useConductors, useOrgRegistrations, useAnamneseFor) — todos implementados

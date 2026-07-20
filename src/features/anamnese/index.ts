@@ -1,3 +1,3 @@
 // Feature: ficha de saúde (anamnese LGPD)
-export { useAnamnese } from './useAnamnese';
-export type { AnamneseData } from './useAnamnese';
+export { useAnamnese, useAnamneseAttachments } from './useAnamnese';
+export type { AnamneseData, AnamneseAttachment } from './useAnamnese';

@@ -25,6 +25,8 @@ jobs:
 
       - run: pnpm typecheck
 
+      - run: pnpm lint
+
       - run: npx expo export -p web
         env:
           EXPO_PUBLIC_SUPABASE_URL: https://ci-dummy.supabase.co

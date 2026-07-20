@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Screen } from '../../src/components';
+import { Button, Screen } from '../../src/components';
 import { useAuth } from '../../src/features/auth';
 import { useRegistration } from '../../src/features/registration/useRegistration';
 import { useAvailableCeremonies } from '../../src/features/registration/useAvailableCeremonies';
@@ -36,9 +36,7 @@ interface TaskCardProps {
 function TaskCard({ done, title, pendingLabel, doneLabel, tone, onPress }: TaskCardProps) {
   const { c } = useTheme();
 
-  const cardBg = done
-    ? (tone === 'care' ? 'rgba(47,125,91,0.07)' : 'rgba(47,125,91,0.07)')
-    : c.surface;
+  const cardBg = done ? c.successSoft : c.surface;
   const cardBorder = done ? c.success : c.border;
 
   return (
@@ -124,8 +122,26 @@ export default function HubScreen() {
     );
   }
 
+  // ── estado: erro de verdade (rede/RLS) ≠ "sem inscrição" ──
+  if (regState.phase === 'error') {
+    return (
+      <Screen>
+        <Text style={[styles.kicker, { color: c.accent, fontFamily: fontFamily.sansSemi }]}>
+          OCA GUATA HETÉ
+        </Text>
+        <Text style={[styles.noRegTitle, { color: c.text, fontFamily: fontFamily.serif }]}>
+          Não conseguimos carregar sua inscrição
+        </Text>
+        <Text style={[styles.noRegSub, { color: c.text2, fontFamily: fontFamily.sans }]}>
+          {regState.message}
+        </Text>
+        <Button label="Tentar novamente" onPress={regState.retry} />
+      </Screen>
+    );
+  }
+
   // ── estado: sem inscrição → cerimônias abertas ──
-  if (regState.phase === 'none' || regState.phase === 'error') {
+  if (regState.phase === 'none') {
     return (
       <Screen>
         {/* Kicker */}
@@ -170,10 +186,24 @@ export default function HubScreen() {
           </View>
         )}
 
-        {(avail.phase === 'empty' || avail.phase === 'error') && (
+        {avail.phase === 'empty' && (
           <View style={[styles.trustNote, { backgroundColor: c.tint, borderColor: c.border2 }]}>
             <Text style={[styles.trustText, { color: c.text2, fontFamily: fontFamily.sans }]}>
               🌿{'  '}Quando uma cerimônia estiver disponível, ela vai aparecer aqui.
+            </Text>
+          </View>
+        )}
+
+        {avail.phase === 'error' && (
+          <View style={[styles.trustNote, { backgroundColor: c.tint, borderColor: c.border2 }]}>
+            <Text style={[styles.trustText, { color: c.error, fontFamily: fontFamily.sans }]}>
+              Não conseguimos carregar as cerimônias. {avail.message}
+            </Text>
+            <Text
+              onPress={avail.retry}
+              style={[styles.trustText, { color: c.accent, fontFamily: fontFamily.sansMedium, marginTop: spacing.sm }]}
+            >
+              Tentar novamente
             </Text>
           </View>
         )}

@@ -12,3 +12,6 @@ export { useAnamneseFor } from './useAnamneseFor';
 
 export { useOrgCeremonies } from './useOrgCeremonies';
 export type { OrgCeremony as OrgCeremonyListItem, CeremonyStatus } from './useOrgCeremonies';
+
+export { useOrgTeam } from './useOrgTeam';
+export type { OrgTeamMember } from './useOrgTeam';

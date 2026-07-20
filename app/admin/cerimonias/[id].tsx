@@ -1,6 +1,8 @@
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../../src/components';
 import { canManageOrg, useStaffAccess } from '../../../src/features/admin';
 import {
@@ -15,6 +17,14 @@ import { borderRadius, sizing, spacing } from '../../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../../src/theme/typography';
 
 type PageState = 'loading' | 'ready' | 'saving';
+
+// ── Flyer da cerimônia (ceremony_images: id, ceremony_id, storage_path,
+//    is_flyer, created_at — índice único parcial garante 1 flyer/cerimônia) ──
+const FLYER_BUCKET = 'ceremony-images';
+const FLYER_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const FLYER_MAX_DIMENSION = 1600; // px, maior lado
+
+type FlyerState = 'loading' | 'idle' | 'busy';
 
 /** Linha de tier no editor: id presente = já existe no banco. */
 interface TierDraft {
@@ -96,11 +106,162 @@ export default function CeremonyFormScreen() {
   const [selectedConductors, setSelectedConductors] = useState<Set<string>>(new Set());
   const savedConductors = useRef<Set<string>>(new Set());
 
+  // Flyer: só existe quando a cerimônia já tem id (não é 'nova')
+  const [flyerState, setFlyerState] = useState<FlyerState>('loading');
+  const [flyerRowId, setFlyerRowId] = useState<string | null>(null);
+  const [flyerUrl, setFlyerUrl] = useState<string | null>(null);
+  const [flyerError, setFlyerError] = useState<string | null>(null);
+
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+
+  // Carrega o flyer atual (se houver) — independente do restante do form
+  useEffect(() => {
+    if (isNew) { setFlyerState('idle'); return; }
+    let cancelled = false;
+    setFlyerState('loading');
+
+    supabase
+      .from('ceremony_images')
+      .select('id, storage_path')
+      .eq('ceremony_id', id as string)
+      .eq('is_flyer', true)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || !mounted.current) return;
+        if (error) {
+          setFlyerError(friendlyDbError(error.message));
+          setFlyerState('idle');
+          return;
+        }
+        if (data) {
+          setFlyerRowId(data.id as string);
+          const { data: urlData } = supabase.storage
+            .from(FLYER_BUCKET)
+            .getPublicUrl(data.storage_path as string);
+          setFlyerUrl(urlData.publicUrl);
+        }
+        setFlyerState('idle');
+      });
+
+    return () => { cancelled = true; };
+  }, [id, isNew]);
+
+  async function pickFlyer() {
+    if (!canWrite || flyerState === 'busy') return;
+    setFlyerError(null);
+
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setFlyerError('Permissão para acessar a galeria é necessária.');
+        return;
+      }
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: false, // flyer é retrato/paisagem livre — sem crop quadrado
+      quality: 1,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    if (asset.fileSize !== undefined && asset.fileSize > FLYER_MAX_BYTES) {
+      setFlyerError('Imagem muito grande. Escolha um arquivo de até 5 MB.');
+      return;
+    }
+
+    setFlyerState('busy');
+    try {
+      // Resize apenas se o maior lado passar de 1600px; sempre recomprime como JPEG 0.85.
+      const longestSide = Math.max(asset.width, asset.height);
+      const actions: ImageManipulator.Action[] =
+        longestSide > FLYER_MAX_DIMENSION
+          ? [
+              asset.width >= asset.height
+                ? { resize: { width: FLYER_MAX_DIMENSION } }
+                : { resize: { height: FLYER_MAX_DIMENSION } },
+            ]
+          : [];
+
+      const processed = await ImageManipulator.manipulateAsync(asset.uri, actions, {
+        compress: 0.85,
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+
+      const resp = await fetch(processed.uri);
+      const blob = await resp.blob();
+      if (blob.size > FLYER_MAX_BYTES) {
+        throw new Error('Imagem muito grande após processamento. Máximo: 5 MB.');
+      }
+
+      const path = `${id}/flyer.jpg`;
+      const { error: uploadErr } = await supabase.storage
+        .from(FLYER_BUCKET)
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+      if (uploadErr) throw new Error(uploadErr.message);
+
+      if (flyerRowId) {
+        const { error } = await supabase
+          .from('ceremony_images')
+          .update({ storage_path: path })
+          .eq('id', flyerRowId);
+        if (error) throw new Error(error.message);
+      } else {
+        const { data, error } = await supabase
+          .from('ceremony_images')
+          .insert({ ceremony_id: id as string, storage_path: path, is_flyer: true })
+          .select('id')
+          .single();
+        if (error || !data) throw new Error(error?.message ?? 'Erro ao salvar o flyer.');
+        if (mounted.current) setFlyerRowId(data.id as string);
+      }
+
+      // Cache-bust para o browser recarregar a imagem após a troca
+      const { data: urlData } = supabase.storage.from(FLYER_BUCKET).getPublicUrl(path);
+      if (mounted.current) setFlyerUrl(`${urlData.publicUrl}?t=${Date.now()}`);
+    } catch (e) {
+      if (mounted.current) {
+        setFlyerError(e instanceof Error ? friendlyDbError(e.message) : 'Erro ao enviar o flyer.');
+      }
+    } finally {
+      if (mounted.current) setFlyerState('idle');
+    }
+  }
+
+  async function removeFlyer() {
+    if (!canWrite || !flyerRowId) return;
+    const confirmed = await confirmAction({
+      title: 'Remover flyer?',
+      message: 'O flyer deixará de aparecer para os participantes.',
+      confirmLabel: 'Remover',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setFlyerState('busy');
+    setFlyerError(null);
+    try {
+      // Falha silenciosa no storage: se o arquivo já não existir não é crítico
+      await supabase.storage.from(FLYER_BUCKET).remove([`${id}/flyer.jpg`]);
+      const { error } = await supabase.from('ceremony_images').delete().eq('id', flyerRowId);
+      if (error) throw new Error(error.message);
+      if (mounted.current) {
+        setFlyerRowId(null);
+        setFlyerUrl(null);
+      }
+    } catch (e) {
+      if (mounted.current) {
+        setFlyerError(e instanceof Error ? friendlyDbError(e.message) : 'Erro ao remover o flyer.');
+      }
+    } finally {
+      if (mounted.current) setFlyerState('idle');
+    }
+  }
 
   // Carrega cerimônia (edição) + tiers + vínculos + condutores da org
   useEffect(() => {
@@ -614,6 +775,78 @@ export default function CeremonyFormScreen() {
             </View>
           )}
         </View>
+
+        {/* Flyer — só faz sentido para cerimônia já existente (precisa do ceremony_id) */}
+        {!isNew && (
+          <View>
+            <Text style={[styles.sectionLabel, { color: c.text2, fontFamily: fontFamily.sansMedium }]}>
+              Flyer
+            </Text>
+
+            {flyerState === 'loading' ? (
+              <ActivityIndicator color={c.forest} />
+            ) : (
+              <>
+                {flyerUrl ? (
+                  <Image
+                    source={{ uri: flyerUrl }}
+                    style={[styles.flyerImg, { borderColor: c.border }]}
+                    resizeMode="contain"
+                    accessibilityIgnoresInvertColors
+                  />
+                ) : (
+                  <Text style={[styles.helperText, { color: c.text3, fontFamily: fontFamily.sans }]}>
+                    Nenhum flyer enviado ainda.
+                  </Text>
+                )}
+
+                {canWrite && (
+                  <View style={styles.flyerActions}>
+                    <Pressable
+                      onPress={pickFlyer}
+                      disabled={flyerState === 'busy'}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.pickButton,
+                        {
+                          borderColor: c.border,
+                          backgroundColor: c.surface,
+                          opacity: pressed || flyerState === 'busy' ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.pickLabel, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+                        {flyerState === 'busy' ? 'Enviando…' : flyerUrl ? 'Trocar flyer' : 'Adicionar flyer'}
+                      </Text>
+                    </Pressable>
+
+                    {flyerUrl && (
+                      <Pressable
+                        onPress={removeFlyer}
+                        disabled={flyerState === 'busy'}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          styles.removeButton,
+                          { opacity: pressed || flyerState === 'busy' ? 0.5 : 1 },
+                        ]}
+                      >
+                        <Text style={[styles.removeLabel, { color: c.error, fontFamily: fontFamily.sans }]}>
+                          Remover flyer
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+
+                {flyerError && (
+                  <Text style={[styles.errorText, { color: c.error, fontFamily: fontFamily.sans }]}>
+                    {flyerError}
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
+        )}
       </View>
 
       {fieldError && (
@@ -691,4 +924,25 @@ const styles = StyleSheet.create({
 
   errorText:  { fontSize: fontSize.bodySm, marginBottom: spacing.md },
   saveButton: { marginBottom: spacing.md },
+
+  // Flyer
+  flyerImg: {
+    width: '100%',
+    height: 220,
+    borderRadius: borderRadius.card,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  flyerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  pickButton: {
+    height: sizing.minTouch,
+    borderRadius: borderRadius.field,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  pickLabel:    { fontSize: fontSize.bodySm },
+  removeButton: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
+  removeLabel:  { fontSize: fontSize.aux },
 });

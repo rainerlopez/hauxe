@@ -126,6 +126,25 @@ export default function AdminHomeScreen() {
         <Text style={[styles.navCardArrow, { color: c.text2, fontFamily: fontFamily.sans }]}>→</Text>
       </Pressable>
 
+      <Pressable
+        onPress={() => router.push('/admin/equipe' as never)}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.navCard,
+          { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.75 : 1 },
+        ]}
+      >
+        <View style={styles.navCardText}>
+          <Text style={[styles.navCardTitle, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+            Equipe
+          </Text>
+          <Text style={[styles.navCardSub, { color: c.text2, fontFamily: fontFamily.sans }]}>
+            Quem administra e conduz o espaço
+          </Text>
+        </View>
+        <Text style={[styles.navCardArrow, { color: c.text2, fontFamily: fontFamily.sans }]}>→</Text>
+      </Pressable>
+
       {/* Cartão de boas-vindas / próximas fases */}
       <View style={[styles.card, { backgroundColor: c.forest, borderColor: c.forestDeep }]}>
         <Text style={[styles.cardTitle, { color: c.onForest, fontFamily: fontFamily.serif }]}>

@@ -3,14 +3,29 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, Screen, TextField } from '../../src/components';
 import { formatCpf, isValidCpf, useAuth } from '../../src/features/auth';
+import { useAvailableCeremonies } from '../../src/features/registration';
 import { useTheme } from '../../src/theme/useTheme';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
+
+function formatCeremonyDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', weekday: 'long' });
+    return date.charAt(0).toUpperCase() + date.slice(1);
+  } catch {
+    return '';
+  }
+}
 
 export default function SignUp() {
   const { signUp } = useAuth();
   const { c }      = useTheme();
   const router     = useRouter();
+  // Próxima cerimônia real (RLS permite leitura anônima de publicadas) —
+  // nada de data/nome fixos: o card reflete o que existe no banco.
+  const avail = useAvailableCeremonies();
+  const nextCeremony = avail.phase === 'ready' ? avail.ceremonies[0] : null;
 
   const [fullName, setFullName] = useState('');
   const [email,    setEmail]    = useState('');
@@ -60,20 +75,22 @@ export default function SignUp() {
         Garanta sua vaga em poucos toques.
       </Text>
 
-      {/* Contexto da cerimônia */}
-      <View style={[styles.ceremony, { backgroundColor: c.tint, borderColor: c.border2 }]}>
-        <View style={[styles.ceremonyIcon, { backgroundColor: c.surface, borderColor: c.border2 }]}>
-          <Text style={{ fontSize: 16 }}>🗓</Text>
+      {/* Contexto da cerimônia — dados reais do banco (some se não houver) */}
+      {nextCeremony && (
+        <View style={[styles.ceremony, { backgroundColor: c.tint, borderColor: c.border2 }]}>
+          <View style={[styles.ceremonyIcon, { backgroundColor: c.surface, borderColor: c.border2 }]}>
+            <Text style={{ fontSize: 16 }}>🗓</Text>
+          </View>
+          <View style={styles.ceremonyText}>
+            <Text style={[styles.ceremonyTitle, { color: c.text, fontFamily: fontFamily.serif }]}>
+              {nextCeremony.title}
+            </Text>
+            <Text style={[styles.ceremonySub, { color: c.text2, fontFamily: fontFamily.sans }]}>
+              {formatCeremonyDate(nextCeremony.starts_at)}
+            </Text>
+          </View>
         </View>
-        <View style={styles.ceremonyText}>
-          <Text style={[styles.ceremonyTitle, { color: c.text, fontFamily: fontFamily.serif }]}>
-            Cerimônia Yawanawá
-          </Text>
-          <Text style={[styles.ceremonySub, { color: c.text2, fontFamily: fontFamily.sans }]}>
-            com Paka Shahu · 31/05, domingo
-          </Text>
-        </View>
-      </View>
+      )}
 
       {/* Formulário — e-mail (login) + CPF (senha) */}
       <View style={styles.form}>

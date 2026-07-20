@@ -1,11 +1,21 @@
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Checkbox, RadioGroup, Screen, TextField } from '../../src/components';
-import { useAnamnese, type AnamneseData } from '../../src/features/anamnese';
+import {
+  useAnamnese,
+  useAnamneseAttachments,
+  type AnamneseData,
+} from '../../src/features/anamnese';
+import { confirmAction } from '../../src/lib/confirm';
 import { useTheme } from '../../src/theme/useTheme';
-import { borderRadius, spacing } from '../../src/theme/spacing';
+import { borderRadius, sizing, spacing } from '../../src/theme/spacing';
 import { fontFamily, fontSize } from '../../src/theme/typography';
+
+const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const ATTACHMENT_MAX_DIMENSION = 1600; // px, maior lado
 
 // ─── estado do formulário ──────────────────────────────────────────────────────
 
@@ -65,10 +75,12 @@ export default function AnamneseScreen() {
   const { c }                  = useTheme();
   const router                 = useRouter();
   const { state, save, saving } = useAnamnese();
+  const attachments             = useAnamneseAttachments();
 
   const [form, setForm]   = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   // Preenche o formulário quando a ficha existente carrega.
   useEffect(() => {
@@ -96,6 +108,69 @@ export default function AnamneseScreen() {
       next.consent_health_data = 'Precisamos do seu consentimento para seguir.';
     setErrors(next);
     return Object.keys(next).length === 0;
+  }
+
+  // ── anexos (receita, exame...) — upload imediato, fora do fluxo de salvar ──
+
+  async function pickAttachment() {
+    setAttachmentError(null);
+
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setAttachmentError('Permissão para acessar a galeria é necessária.');
+        return;
+      }
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: false, // sem crop — documento/exame precisa do enquadramento original
+      quality: 1,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    if (asset.fileSize !== undefined && asset.fileSize > ATTACHMENT_MAX_BYTES) {
+      setAttachmentError('Imagem muito grande. Escolha um arquivo de até 5 MB.');
+      return;
+    }
+
+    // Resize apenas se o maior lado passar de 1600px; sempre recomprime como JPEG 0.85.
+    const longestSide = Math.max(asset.width, asset.height);
+    const actions: ImageManipulator.Action[] =
+      longestSide > ATTACHMENT_MAX_DIMENSION
+        ? [
+            asset.width >= asset.height
+              ? { resize: { width: ATTACHMENT_MAX_DIMENSION } }
+              : { resize: { height: ATTACHMENT_MAX_DIMENSION } },
+          ]
+        : [];
+
+    const processed = await ImageManipulator.manipulateAsync(asset.uri, actions, {
+      compress: 0.85,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+
+    const resp = await fetch(processed.uri);
+    const blob = await resp.blob();
+
+    const { error } = await attachments.upload(blob);
+    if (error) setAttachmentError(error);
+  }
+
+  async function handleRemoveAttachment(path: string, name: string) {
+    const confirmed = await confirmAction({
+      title: 'Remover anexo?',
+      message: `O arquivo "${name}" será removido definitivamente.`,
+      confirmLabel: 'Remover',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setAttachmentError(null);
+    const { error } = await attachments.remove(path);
+    if (error) setAttachmentError(error);
   }
 
   async function handleSubmit() {
@@ -251,6 +326,76 @@ export default function AnamneseScreen() {
           onChange={(v) => set('previous_experience', v)}
         />
 
+        {/* Anexos opcionais — receita médica, exame etc. Dado de saúde: bucket
+            privado, sem URL pública, servido por signed URL de curta duração. */}
+        <Text style={[styles.section, { color: c.text, fontFamily: fontFamily.sansSemi }]}>
+          Anexos (opcional)
+        </Text>
+        <Text style={[styles.attachmentsHint, { color: c.text2, fontFamily: fontFamily.sans }]}>
+          Receita médica, exame ou outro documento que ajude a equipe a cuidar de você.
+        </Text>
+
+        {attachments.state.phase === 'loading' ? (
+          <ActivityIndicator color={c.forest} />
+        ) : attachments.state.phase === 'error' ? (
+          <Text style={[styles.msg, { color: c.error, fontFamily: fontFamily.sans }]}>
+            {attachments.state.message}
+          </Text>
+        ) : (
+          attachments.state.items.map((item) => (
+            <View
+              key={item.path}
+              style={[styles.attachmentRow, { borderColor: c.border2, backgroundColor: c.surface }]}
+            >
+              <Image
+                source={{ uri: item.signedUrl }}
+                style={styles.attachmentThumb}
+                accessibilityIgnoresInvertColors
+              />
+              <Text
+                style={[styles.attachmentName, { color: c.text, fontFamily: fontFamily.sans }]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+              <Pressable
+                onPress={() => handleRemoveAttachment(item.path, item.name)}
+                disabled={attachments.busy}
+                accessibilityRole="button"
+                accessibilityLabel={`Remover ${item.name}`}
+                style={({ pressed }) => [
+                  styles.attachmentRemove,
+                  { opacity: pressed || attachments.busy ? 0.5 : 1 },
+                ]}
+              >
+                <Text style={{ color: c.error, fontFamily: fontFamily.sansMedium, fontSize: fontSize.aux }}>
+                  Remover
+                </Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+
+        <Pressable
+          onPress={pickAttachment}
+          disabled={attachments.busy}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.addAttachment,
+            { borderColor: c.border, opacity: pressed || attachments.busy ? 0.6 : 1 },
+          ]}
+        >
+          <Text style={[styles.addAttachmentLabel, { color: c.text, fontFamily: fontFamily.sansMedium }]}>
+            {attachments.busy ? 'Enviando…' : '+ Adicionar arquivo'}
+          </Text>
+        </Pressable>
+
+        {attachmentError ? (
+          <Text style={[styles.msg, { color: c.error, fontFamily: fontFamily.sans }]}>
+            {attachmentError}
+          </Text>
+        ) : null}
+
         {/* Consentimento LGPD */}
         <View style={[styles.consent, { backgroundColor: c.tint, borderColor: c.border2 }]}>
           <Checkbox
@@ -305,4 +450,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   msg: { fontSize: fontSize.micro },
+
+  attachmentsHint: { fontSize: fontSize.aux, lineHeight: 18, marginTop: -spacing.sm },
+  attachmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: borderRadius.field,
+    borderWidth: 1,
+    padding: spacing.sm,
+  },
+  attachmentThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.sm,
+  },
+  attachmentName: { flex: 1, fontSize: fontSize.bodySm },
+  attachmentRemove: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  addAttachment: {
+    height: sizing.minTouch,
+    borderRadius: borderRadius.field,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addAttachmentLabel: { fontSize: fontSize.bodySm },
 });

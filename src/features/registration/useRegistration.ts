@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth';
 
@@ -34,9 +35,11 @@ type State =
  * junto com os dados da cerimônia e o progresso da view registration_progress.
  * Retorna a mais próxima no tempo (primeira por starts_at asc).
  */
-export function useRegistration(): State {
+export function useRegistration(): State & { retry: () => void } {
   const { user } = useAuth();
   const [state, setState] = useState<State>({ phase: 'loading' });
+  // Incrementado por retry(): força o refetch fora do ciclo de foco.
+  const [nonce, setNonce] = useState(0);
 
   // Revalida sempre que a tela ganha foco — ao voltar de /anamnese ou
   // /contribuicao o progresso (ficha_ok / pagamento_ok) pode ter mudado.
@@ -101,7 +104,7 @@ export function useRegistration(): State {
         if (!cancelled) {
           setState({
             phase: 'error',
-            message: e instanceof Error ? e.message : 'Erro ao carregar inscrição.',
+            message: e instanceof Error ? friendlyDbError(e.message) : 'Erro ao carregar inscrição.',
           });
         }
       }
@@ -109,8 +112,8 @@ export function useRegistration(): State {
 
       fetch();
       return () => { cancelled = true; };
-    }, [user]),
+    }, [user, nonce]),
   );
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

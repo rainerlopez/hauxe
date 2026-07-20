@@ -1,3 +1,8 @@
+> **DOCUMENTO HISTÓRICO (snapshot de 19/07, manhã).** Grande parte das pendências
+> aqui listadas foi resolvida NO MESMO DIA (merge v13/Fase 3b, PIX Asaas sandbox,
+> CI verde, Fase 3b do console, correções de UX). Fonte atual: PROGRESSO.md
+> (adendo 19/07) + CLAUDE.md.
+
 # Relatório de análise — estado real do projeto Hauxe
 
 **Data:** 2026-07-19 · **Base:** leitura direta do código na `main` (commit `2377d7b`, pós-merge PR #10) + docs `weekend/` e `ENTREGA-user-auth.md`.

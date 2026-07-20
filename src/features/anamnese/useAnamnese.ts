@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth';
 
@@ -112,7 +113,7 @@ export function useAnamnese() {
           .from('anamneses')
           .upsert(payload, { onConflict: 'profile_id' });
 
-        if (error) return { error: error.message };
+        if (error) return { error: friendlyDbError(error.message) };
         return { error: null };
       } finally {
         setSaving(false);
@@ -122,4 +123,115 @@ export function useAnamnese() {
   );
 
   return { state, save, saving };
+}
+
+// ─── anexos (opcional) ──────────────────────────────────────────────────
+//
+// Bucket `anamnese-files` é PRIVADO (dado de saúde — LGPD). Caminho:
+// `{profile_id}/{arquivo}` (convenção do db/hauxe_schema_patch_v03_storage.sql).
+// Nunca expomos URL pública: toda leitura passa por createSignedUrl de curta
+// duração, gerada sob demanda — nada fica em cache além do necessário.
+
+const ATTACHMENTS_BUCKET = 'anamnese-files';
+const ATTACHMENTS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const SIGNED_URL_TTL_SECONDS = 60;
+
+export interface AnamneseAttachment {
+  /** Nome do arquivo dentro da pasta do usuário (ex.: 1721488000000.jpg). */
+  name: string;
+  /** Caminho completo no bucket: `{profile_id}/{name}`. */
+  path: string;
+  /** URL assinada de curta duração — não persistir além da sessão de tela. */
+  signedUrl: string;
+}
+
+type AttachmentsState =
+  | { phase: 'loading' }
+  | { phase: 'ready'; items: AnamneseAttachment[] }
+  | { phase: 'error'; message: string };
+
+/**
+ * Lista, envia e remove anexos da ficha de saúde (ex.: receita, exame).
+ * Upload é imediato (não depende de `save`); cada item é servido por uma
+ * signed URL nova a cada `refresh` — o bucket não tem leitura pública.
+ */
+export function useAnamneseAttachments() {
+  const { user } = useAuth();
+  const [state, setState] = useState<AttachmentsState>({ phase: 'loading' });
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setState({ phase: 'ready', items: [] });
+      return;
+    }
+    setState({ phase: 'loading' });
+    try {
+      const { data, error } = await supabase.storage
+        .from(ATTACHMENTS_BUCKET)
+        .list(user.id, { sortBy: { column: 'created_at', order: 'desc' } });
+      if (error) throw error;
+
+      const items: AnamneseAttachment[] = [];
+      for (const file of data ?? []) {
+        // storage.list pode devolver um placeholder de pasta vazia (id null) — ignora.
+        if (!file.id) continue;
+        const path = `${user.id}/${file.name}`;
+        const { data: signed, error: signErr } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+        if (signErr || !signed) continue;
+        items.push({ name: file.name, path, signedUrl: signed.signedUrl });
+      }
+      setState({ phase: 'ready', items });
+    } catch (e) {
+      setState({
+        phase: 'error',
+        message: e instanceof Error ? friendlyDbError(e.message) : 'Erro ao carregar anexos.',
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const upload = useCallback(
+    async (blob: Blob): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Sessão expirada. Entre novamente.' };
+      if (blob.size > ATTACHMENTS_MAX_BYTES) {
+        return { error: 'Arquivo muito grande após processamento. Máximo: 5 MB.' };
+      }
+      setBusy(true);
+      try {
+        const path = `${user.id}/${Date.now()}.jpg`;
+        const { error } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET)
+          .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+        if (error) return { error: friendlyDbError(error.message) };
+        await refresh();
+        return { error: null };
+      } finally {
+        setBusy(false);
+      }
+    },
+    [user, refresh],
+  );
+
+  const remove = useCallback(
+    async (path: string): Promise<{ error: string | null }> => {
+      setBusy(true);
+      try {
+        const { error } = await supabase.storage.from(ATTACHMENTS_BUCKET).remove([path]);
+        if (error) return { error: friendlyDbError(error.message) };
+        await refresh();
+        return { error: null };
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refresh],
+  );
+
+  return { state, busy, upload, remove, refresh };
 }

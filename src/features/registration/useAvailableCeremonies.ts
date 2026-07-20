@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth';
 
@@ -25,9 +26,10 @@ type State =
  * RLS `ceremonies - read published` cobre o acesso do participante.
  * Revalida no foco — ao voltar de /cerimonia/[id] a lista pode ter mudado.
  */
-export function useAvailableCeremonies(): State {
+export function useAvailableCeremonies(): State & { retry: () => void } {
   const { user } = useAuth();
   const [state, setState] = useState<State>({ phase: 'loading' });
+  const [nonce, setNonce] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -68,7 +70,7 @@ export function useAvailableCeremonies(): State {
           if (!cancelled) {
             setState({
               phase: 'error',
-              message: e instanceof Error ? e.message : 'Erro ao carregar as cerimônias.',
+              message: e instanceof Error ? friendlyDbError(e.message) : 'Erro ao carregar as cerimônias.',
             });
           }
         }
@@ -78,8 +80,8 @@ export function useAvailableCeremonies(): State {
       return () => {
         cancelled = true;
       };
-    }, [user]),
+    }, [user, nonce]),
   );
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

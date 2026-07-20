@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth';
 
@@ -60,7 +61,7 @@ export function useEnroll() {
         if (msg.includes('ceremony_full')) {
           return { error: 'As vagas desta cerimônia se completaram por agora.', full: true };
         }
-        return { error: msg };
+        return { error: friendlyDbError(msg) };
       } finally {
         setEnrolling(false);
       }

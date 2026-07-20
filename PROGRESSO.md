@@ -102,3 +102,31 @@ Supabase interceptadas via page.route → request context do Playwright):
 Falta apenas o que depende de humanos: as ações de painel listadas acima e as
 credenciais do provedor PIX (o fluxo roda em mock até lá). Próxima fronteira
 de produto: criação de cerimônia no console (Fase 3b) e integração PIX real.
+
+---
+
+## Adendo 19/07 — sessão Ultracode (pós-fechamento)
+
+Tudo abaixo já está na `main` (histórico de commits do dia):
+
+- **Repo↔produção 100% reconciliados**: branch da etapa (v13 + Fases 2–5) mergeado
+  na main; `snapshot_anamnese_revision` (v03b) e `security_revoke_public` (v02b)
+  resgatados de produção para `db/` — não há mais objeto de banco fora do git.
+- **PIX REAL (Asaas) integrado e validado no SANDBOX fim-a-fim**: cliente por CPF,
+  cobrança PIX, QR real, webhook com token `asaas-access-token` (constant-time,
+  fail-closed), pagamento simulado → `payments.pago` via trigger em produção.
+  A3 fechado (valor derivado do tier no servidor + tier validado contra a
+  cerimônia). Falta só a virada p/ produção (conta Asaas real — Bruno).
+- **Fase 3b FEITA**: `/admin/cerimonias` (lista + form com tiers e condutores).
+- **Console+**: check-in com confirmação e desfazer, papel na UI (canManageOrg),
+  `friendlyDbError`, tela `/admin/equipe` (somente-leitura — org_members não tem
+  policy de escrita), inscritos com busca/filtro/seletor de cerimônia/CSV,
+  flyer de cerimônia, anexos de anamnese (signed URLs).
+- **Participante**: sign-up com cerimônia dinâmica (era hardcoded), erro real da
+  Edge Function exibido (FunctionsHttpError.context), hub distingue erro de
+  "sem inscrição" com retry.
+- **CI VERDE pela primeira vez** (workflow pinava pnpm 9; corrigido via
+  `packageManager`) + step de lint.
+- Pendências que continuam SUAS (painel): repo→privado (CRÍTICO, ainda público),
+  template Confirm signup com {{ .Token }}, desligar magic link/OTP, CPF do 2º
+  usuário, conta Asaas de produção.

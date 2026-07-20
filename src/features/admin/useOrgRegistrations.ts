@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { friendlyDbError } from '../../lib/friendlyDbError';
 import { supabase } from '../../lib/supabase';
 
 export interface OrgCeremony {
@@ -29,12 +30,16 @@ type State =
   | { phase: 'error'; message: string };
 
 /**
- * Inscritos da próxima cerimônia da org, com progresso (ficha/pagamento).
+ * Inscritos de uma cerimônia da org, com progresso (ficha/pagamento).
+ * `ceremonyId === null` mantém o comportamento histórico: resolve a
+ * PRÓXIMA cerimônia (inclui o dia de hoje — check-in acontece no dia).
+ * Passar um id explícito (do seletor da tela) busca aquela cerimônia,
+ * inclusive passadas.
  * Tudo coberto por RLS de staff: registrations/profiles/payments/anamneses
  * "org staff read" + view registration_progress (SECURITY INVOKER).
  * Revalida no foco (check-in/refresh ao voltar do detalhe).
  */
-export function useOrgRegistrations(): State {
+export function useOrgRegistrations(ceremonyId: string | null): State {
   const [state, setState] = useState<State>({ phase: 'loading' });
 
   useFocusEffect(
@@ -44,16 +49,29 @@ export function useOrgRegistrations(): State {
       async function fetch() {
         setState({ phase: 'loading' });
         try {
-          // Próxima cerimônia (inclui o dia de hoje — check-in acontece no dia).
-          const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          const { data: cer, error: cerErr } = await supabase
-            .from('ceremonies')
-            .select('id, title, starts_at, capacity')
-            .gte('starts_at', since)
-            .order('starts_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (cerErr) throw cerErr;
+          let cer: OrgCeremony | null;
+
+          if (ceremonyId) {
+            const { data, error: cerErr } = await supabase
+              .from('ceremonies')
+              .select('id, title, starts_at, capacity')
+              .eq('id', ceremonyId)
+              .maybeSingle();
+            if (cerErr) throw cerErr;
+            cer = data as OrgCeremony | null;
+          } else {
+            const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const { data, error: cerErr } = await supabase
+              .from('ceremonies')
+              .select('id, title, starts_at, capacity')
+              .gte('starts_at', since)
+              .order('starts_at', { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (cerErr) throw cerErr;
+            cer = data as OrgCeremony | null;
+          }
+
           if (!cer) {
             if (!cancelled) setState({ phase: 'empty' });
             return;
@@ -107,7 +125,7 @@ export function useOrgRegistrations(): State {
           if (!cancelled) {
             setState({
               phase: 'ready',
-              ceremony: cer as OrgCeremony,
+              ceremony: cer,
               registrations: list,
             });
           }
@@ -115,7 +133,10 @@ export function useOrgRegistrations(): State {
           if (!cancelled) {
             setState({
               phase: 'error',
-              message: e instanceof Error ? e.message : 'Erro ao carregar os inscritos.',
+              message:
+                e instanceof Error
+                  ? friendlyDbError(e.message)
+                  : 'Erro ao carregar os inscritos.',
             });
           }
         }
@@ -125,7 +146,7 @@ export function useOrgRegistrations(): State {
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [ceremonyId]),
   );
 
   return state;

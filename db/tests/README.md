@@ -1,4 +1,4 @@
-# Suite de validação SQL — Hauxe (fases v05–v09)
+# Suite de validação SQL — Hauxe (fases v05–v13)
 
 Scripts idempotentes e **re-rodáveis** que consolidam todas as validações de
 banco feitas ad-hoc nas fases anteriores. Cada script:
@@ -16,12 +16,18 @@ banco feitas ad-hoc nas fases anteriores. Cada script:
 # variável de conexão (Supabase → Project Settings → Database → Connection string)
 export PGURI='postgresql://postgres:[SENHA]@db.xgjnsyffibdahymaropx.supabase.co:5432/postgres'
 
+# roda a suíte inteira (recomendado — \ir relativo funciona de qualquer diretório):
+psql "$PGURI" -f db/tests/run_all.sql
+
+# ou script a script:
 psql "$PGURI" -f db/tests/01_conductors_rls.sql
 psql "$PGURI" -f db/tests/02_storage_conductors.sql
 psql "$PGURI" -f db/tests/03_storage_anamnese_staff_read.sql
 psql "$PGURI" -f db/tests/04_capacity.sql
 psql "$PGURI" -f db/tests/05_ceremony_conductors_same_org.sql
 psql "$PGURI" -f db/tests/06_async_status.sql
+psql "$PGURI" -f db/tests/07_cpf_capture.sql
+psql "$PGURI" -f db/tests/08_registration_write_guard.sql
 ```
 
 Cada arquivo imprime a tabela de resultados ao final. Procure por qualquer
@@ -63,6 +69,8 @@ RESET ROLE;                     -- volta ao papel privilegiado
 | `04_capacity.sql` | Capacidade de vagas (cheia, cancelamento, NULL, auto-update) | v09 |
 | `05_ceremony_conductors_same_org.sql` | Junção mesma-org (INSERT/UPDATE) + RESTRICT no DELETE | v09/v09b |
 | `06_async_status.sql` | Promoção assíncrona a `confirmada` (intake + pagamento) | MVP |
+| `07_cpf_capture.sql` | Captura de CPF no cadastro (normalização, NULL, CHECK) | v12 |
+| `08_registration_write_guard.sql` | Guard de escrita do dono (cancelar/reinscrever, tier não-pago, ceremony_id imutável) | v13 |
 
 ## Seeds (rodada manual)
 
